@@ -77,6 +77,8 @@ urgency (0–40) + impact (0–25) + size (0–20) + age (0–15)
 
 Each component and its human-readable reason are stored with the PR. Queue status is separate from priority, so a high-score draft still remains in `WAITING`.
 
+A low priority score means a PR needs less attention than its peers; it does not by itself declare the change safe or correct.
+
 ## Security boundaries
 
 - `GITHUB_TOKEN`, `DATABASE_URL`, and `JWT_SECRET` are backend-only.
@@ -86,4 +88,3 @@ Each component and its human-readable reason are stored with the PR. Queue statu
 - Repository identifiers accept GitHub owner/name syntax, not arbitrary URLs.
 - Normal startup never mutates the schema or resets data.
 - The explicit seed command is the only destructive database path.
-
