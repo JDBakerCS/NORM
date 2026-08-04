@@ -6,7 +6,10 @@ export async function authenticateUser(request, response, next) {
   try {
     const authorization = request.get('authorization') || '';
     const [scheme, token] = authorization.split(' ');
-    if (scheme !== 'Bearer' || !token) throw new AppError('Authentication is required', 401, 'AUTH_REQUIRED');
+    if (scheme !== 'Bearer' || !token) {
+      response.set('WWW-Authenticate', 'Bearer');
+      throw new AppError('Authentication is required', 401, 'AUTH_REQUIRED');
+    }
 
     let payload;
     try {
@@ -23,4 +26,3 @@ export async function authenticateUser(request, response, next) {
     next(error);
   }
 }
-
