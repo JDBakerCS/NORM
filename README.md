@@ -190,6 +190,8 @@ The included `render.yaml` is a blueprint reference. Secret values are marked `s
 
 `frontend/vercel.json` rewrites browser routes to the React entry point. After Vercel assigns the stable production domain, use that exact origin as Render's `FRONTEND_URL` and redeploy the backend.
 
+Vite embeds `VITE_API_URL` when it builds the frontend. After changing that variable in Vercel, redeploy the frontend so the new API URL reaches the browser bundle.
+
 ## Security boundaries
 
 - GitHub and database secrets exist only in backend environment variables.
