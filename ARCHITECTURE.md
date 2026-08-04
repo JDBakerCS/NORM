@@ -40,6 +40,21 @@ POST /api/repositories/:id/sync
 
 The Octokit layer is the only service that understands GitHub response structures. The sync layer receives a stable internal object and supplies it to pure decision functions. Network work finishes before the transaction begins so database locks are short.
 
+## Webhook freshness flow
+
+```text
+GitHub event
+  → POST /api/github/webhook with X-Hub-Signature-256 and delivery ID
+  → verify raw-body HMAC before JSON parsing
+  → persist unique delivery metadata as PENDING or IGNORED
+  → return 202 quickly
+  → serialize affected repository refreshes
+  → refetch the affected PR through Octokit and upsert it
+  → mark the delivery COMPLETED, IGNORED, or FAILED
+```
+
+NORM accepts `pull_request`, `pull_request_review`, `check_run`, `check_suite`, and `status` events. Direct PR events refresh by number. Check and status events use the event's PR references or a stored open PR head SHA. The delivery record is an audit and deduplication trail; NORM does not store raw webhook bodies.
+
 ## Status normalization
 
 CI status is `RUNNING` if any check is queued or active, `FAILED` if a completed check has a failing conclusion, `PASSED` only when all available checks are successful/neutral/skipped, and `NOT_AVAILABLE` when no checks exist.

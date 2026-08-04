@@ -142,6 +142,28 @@ After adding an owner and repository name, press **Sync from GitHub**. The backe
 Repeated syncs update the same rows using database uniqueness constraints; they do not create duplicates.
 When a pull request is merged or closed on GitHub, the next sync removes it from NORM's active queues and records it as closed. NORM triages pull requests; it does not merge them.
 
+## Webhook synchronization
+
+Manual Sync remains available as a reconciliation and recovery path. To keep a registered repository fresh between manual syncs, NORM also accepts signed GitHub webhook deliveries at:
+
+```text
+https://YOUR-RENDER-SERVICE.onrender.com/api/github/webhook
+```
+
+Set the same strong random value as `GITHUB_WEBHOOK_SECRET` in the backend environment and in GitHub's webhook **Secret** field. NORM verifies GitHub's `X-Hub-Signature-256` against the original request body before it parses or records a delivery. It stores the delivery ID to ignore duplicates, then refetches the affected PR from GitHub rather than trusting an event's possibly stale payload.
+
+In the GitHub repository's **Settings → Webhooks**, use JSON content and subscribe to these individual events:
+
+- Pull requests
+- Pull request reviews
+- Check runs
+- Check suites
+- Statuses
+
+The endpoint responds quickly and serializes refreshes for each configured NORM repository. Unsupported events, repositories not registered in NORM, and status events that do not match a stored open PR are recorded as ignored. A restart resumes pending work; Manual Sync remains the fallback for a failed delivery.
+
+This feature adds the `webhook_deliveries` table. Run the explicit, non-destructive `npm run db:sync` against the deployed database after deploying the feature and before creating the GitHub webhook.
+
 ## Testing
 
 ```bash

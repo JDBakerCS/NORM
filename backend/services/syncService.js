@@ -20,6 +20,51 @@ export function applyDecisionRules(pullRequest, repository, now = new Date()) {
   return { ...withAgentFlag, ...priority, queueStatus: queue.queueStatus };
 }
 
+function toSyncedRow(pullRequest, repository, syncedAt) {
+  return {
+    ...applyDecisionRules(pullRequest, repository, syncedAt),
+    repositoryId: repository.id,
+    lastSyncedAt: syncedAt,
+  };
+}
+
+async function upsertPullRequest(row, pullRequestModel, transaction) {
+  const existing = await pullRequestModel.findOne({
+    where: { repositoryId: row.repositoryId, githubPullRequestId: row.githubPullRequestId },
+    transaction,
+  });
+  if (existing) return existing.update(row, { transaction });
+  return pullRequestModel.create(row, { transaction });
+}
+
+function toGithubSyncError(error) {
+  if (error instanceof AppError) return error;
+  const status = error.status === 401 || error.status === 403 ? 502 : 500;
+  const detail = error.status ? `GitHub returned HTTP ${error.status}` : null;
+  return new AppError('Repository could not be synchronized', status, 'GITHUB_SYNC_FAILED', detail);
+}
+
+export async function syncSinglePullRequest(
+  repository,
+  pullNumber,
+  provider = githubService,
+  pullRequestModel = PullRequest,
+  runTransaction = (work) => sequelize.transaction(work),
+) {
+  try {
+    const pullRequest = await provider.syncPullRequest(repository.owner, repository.name, { number: pullNumber });
+    const syncedAt = new Date();
+    const row = toSyncedRow(pullRequest, repository, syncedAt);
+    await runTransaction(async (transaction) => {
+      await repository.update({ lastSyncedAt: syncedAt }, { transaction });
+      await upsertPullRequest(row, pullRequestModel, transaction);
+    });
+    return { pullRequest: row, repository, syncedAt };
+  } catch (error) {
+    throw toGithubSyncError(error);
+  }
+}
+
 export async function syncRepository(
   repository,
   provider = githubService,
@@ -35,11 +80,7 @@ export async function syncRepository(
     }
 
     const syncedAt = new Date();
-    const rows = normalizedPullRequests.map((pullRequest) => ({
-      ...applyDecisionRules(pullRequest, repository, syncedAt),
-      repositoryId: repository.id,
-      lastSyncedAt: syncedAt,
-    }));
+    const rows = normalizedPullRequests.map((pullRequest) => toSyncedRow(pullRequest, repository, syncedAt));
 
     await runTransaction(async (transaction) => {
       await repository.update({
@@ -57,17 +98,10 @@ export async function syncRepository(
       }
 
       for (const row of rows) {
-        const existing = await pullRequestModel.findOne({ where: { repositoryId: repository.id, githubPullRequestId: row.githubPullRequestId }, transaction });
-        if (existing) await existing.update(row, { transaction });
-        else await pullRequestModel.create(row, { transaction });
+        await upsertPullRequest(row, pullRequestModel, transaction);
       }
     });
 
     return { imported: rows.length, repository, syncedAt };
-  } catch (error) {
-    if (error instanceof AppError) throw error;
-    const status = error.status === 401 || error.status === 403 ? 502 : 500;
-    const detail = error.status ? `GitHub returned HTTP ${error.status}` : null;
-    throw new AppError('Repository could not be synchronized', status, 'GITHUB_SYNC_FAILED', detail);
-  }
+  } catch (error) { throw toGithubSyncError(error); }
 }

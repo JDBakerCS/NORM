@@ -25,3 +25,11 @@ These steps require a secret or an external website. All application code and lo
 3. Create a Vercel project rooted at `norm/frontend` and set `VITE_API_URL` to the Render URL plus `/api`.
 4. Codex can verify afterward with the production health URL, registration/login, a manual Sync, and direct navigation to a PR details route.
 
+## 4. Enable webhook-driven freshness
+
+1. Deploy the webhook feature, then run `npm run db:sync` against the existing deployed database. This creates the non-destructive `webhook_deliveries` table; normal server startup intentionally does not change schemas.
+2. Generate a strong random secret and set it as `GITHUB_WEBHOOK_SECRET` in Render. Do not reuse the JWT or GitHub token, and do not paste the secret into chat or a frontend variable.
+3. In the target GitHub repository, open **Settings → Webhooks → Add webhook**.
+4. Set the payload URL to `https://YOUR-RENDER-SERVICE.onrender.com/api/github/webhook`, choose `application/json`, enter the same secret, and leave SSL verification enabled.
+5. Select individual events: **Pull requests**, **Pull request reviews**, **Check runs**, **Check suites**, and **Statuses**. GitHub sends a ping delivery when the webhook is saved; NORM safely records it as ignored.
+6. Open or update a pull request, then inspect the GitHub webhook's Recent Deliveries and the NORM queue. Use Manual Sync if a delivery fails or if GitHub did not send an event.
