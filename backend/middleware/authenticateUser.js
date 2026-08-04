@@ -1,5 +1,5 @@
 import { User } from '../models/index.js';
-import { verifyToken } from '../services/authService.js';
+import { getUserIdFromPayload, verifyToken } from '../services/authService.js';
 import { AppError } from '../utils/AppError.js';
 
 export async function authenticateUser(request, response, next) {
@@ -18,7 +18,10 @@ export async function authenticateUser(request, response, next) {
       throw new AppError('Your session is invalid or expired', 401, 'SESSION_EXPIRED');
     }
 
-    const user = await User.findByPk(payload.sub);
+    const userId = getUserIdFromPayload(payload);
+    if (!userId) throw new AppError('Your session is invalid or expired', 401, 'SESSION_EXPIRED');
+
+    const user = await User.findByPk(userId);
     if (!user) throw new AppError('Your session is invalid or expired', 401, 'SESSION_EXPIRED');
     request.user = user;
     next();

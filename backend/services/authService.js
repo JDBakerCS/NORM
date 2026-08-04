@@ -15,4 +15,7 @@ export const hashPassword = (password) => bcrypt.hash(password, SALT_ROUNDS);
 export const verifyPassword = (password, passwordHash) => bcrypt.compare(password, passwordHash);
 export const createToken = (user) => jwt.sign({ sub: String(user.id), email: user.email }, jwtSecret(), { expiresIn: '8h' });
 export const verifyToken = (token) => jwt.verify(token, jwtSecret());
-
+export const getUserIdFromPayload = (payload) => {
+  const userId = Number(payload?.sub);
+  return Number.isSafeInteger(userId) && userId > 0 ? userId : null;
+};
