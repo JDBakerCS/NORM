@@ -29,13 +29,30 @@ async function getReviews(owner, repo, pullNumber) {
   return getClient().paginate(getClient().pulls.listReviews, { owner, repo, pull_number: pullNumber, per_page: 100 });
 }
 
-async function getCheckRuns(owner, repo, ref) {
-  const { data } = await getClient().checks.listForRef({ owner, repo, ref, per_page: 100 });
+async function getCheckRuns(owner, repo, ref, client = getClient()) {
+  const { data } = await client.checks.listForRef({ owner, repo, ref, per_page: 100 });
   return data.check_runs || [];
 }
 
-async function getCommitStatuses(owner, repo, ref) {
-  const { data } = await getClient().repos.getCombinedStatusForRef({ owner, repo, ref, per_page: 100 });
+function isMissingChecksReadPermission(error) {
+  const acceptedPermissions = error.response?.headers?.['x-accepted-github-permissions'];
+  return error.status === 403
+    && typeof acceptedPermissions === 'string'
+    && acceptedPermissions.toLowerCase().split(',').map((permission) => permission.trim()).includes('checks=read');
+}
+
+async function getCheckRunsWithPermissionFallback(owner, repo, ref, client = getClient()) {
+  try {
+    return await getCheckRuns(owner, repo, ref, client);
+  } catch (error) {
+    // Commit statuses are still useful CI evidence when this token cannot read check runs.
+    if (isMissingChecksReadPermission(error)) return [];
+    throw error;
+  }
+}
+
+async function getCommitStatuses(owner, repo, ref, client = getClient()) {
+  const { data } = await client.repos.getCombinedStatusForRef({ owner, repo, ref, per_page: 100 });
   return data.statuses || [];
 }
 
@@ -73,11 +90,12 @@ function normalizePullRequest({ details, files, reviews, checkRuns, commitStatus
 async function syncPullRequest(owner, repo, pullSummary) {
   const pullNumber = pullSummary.number;
   const details = await getPullRequestDetails(owner, repo, pullNumber);
+  const client = getClient();
   const [files, reviews, checkRuns, commitStatuses] = await Promise.all([
     getChangedFiles(owner, repo, pullNumber),
     getReviews(owner, repo, pullNumber),
-    getCheckRuns(owner, repo, details.head.sha),
-    getCommitStatuses(owner, repo, details.head.sha),
+    getCheckRunsWithPermissionFallback(owner, repo, details.head.sha, client),
+    getCommitStatuses(owner, repo, details.head.sha, client),
   ]);
   return normalizePullRequest({ details, files, reviews, checkRuns, commitStatuses });
 }
@@ -89,7 +107,7 @@ export const githubService = {
   getChangedFiles,
   getReviews,
   getCheckRuns,
+  getCheckRunsWithPermissionFallback,
   normalizePullRequest,
   syncPullRequest,
 };
-
