@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { syncRepository } from '../services/syncService.js';
+import { syncRepository, syncSinglePullRequest } from '../services/syncService.js';
 
 const normalized = (overrides = {}) => ({
   githubPullRequestId: 12345,
@@ -92,6 +92,22 @@ test('a PR missing from the next open response is marked closed', async () => {
   assert.equal(model.rows[0].state, 'closed');
 });
 
+test('targeted sync upserts only the delivered pull request', async () => {
+  const model = inMemoryModel();
+  const repo = repository();
+  const current = { value: normalized() };
+  await syncSinglePullRequest(repo, 42, provider(current), model, runTransaction);
+  assert.equal(model.rows.length, 1);
+  assert.equal(model.rows[0].number, 42);
+
+  current.value = normalized({ state: 'closed', title: 'Closed API route update' });
+  await syncSinglePullRequest(repo, 42, provider(current), model, runTransaction);
+  assert.equal(model.rows.length, 1);
+  assert.equal(model.rows[0].state, 'closed');
+  assert.equal(model.rows[0].title, 'Closed API route update');
+  assert.ok(repo.lastSyncedAt instanceof Date);
+});
+
 test('GitHub provider failure becomes a useful safe application error', async () => {
   const failing = { async getRepository() { const error = new Error('secret response'); error.status = 403; throw error; } };
   await assert.rejects(
@@ -99,4 +115,3 @@ test('GitHub provider failure becomes a useful safe application error', async ()
     (error) => error.code === 'GITHUB_SYNC_FAILED' && error.message === 'Repository could not be synchronized' && error.details === 'GitHub returned HTTP 403',
   );
 });
-
