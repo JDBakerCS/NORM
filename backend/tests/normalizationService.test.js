@@ -9,6 +9,12 @@ test('CI normalization preserves running, failure, success, and unavailable stat
   assert.equal(normalizeCiStatus([{ status: 'completed', conclusion: 'success' }, { status: 'completed', conclusion: 'skipped' }]), 'PASSED');
 });
 
+test('commit statuses classify CI when check runs are unavailable', () => {
+  assert.equal(normalizeCiStatus([], [{ state: 'pending' }]), 'RUNNING');
+  assert.equal(normalizeCiStatus([], [{ state: 'failure' }]), 'FAILED');
+  assert.equal(normalizeCiStatus([], [{ state: 'success' }]), 'PASSED');
+});
+
 test('latest meaningful review from each reviewer controls review status', () => {
   const reviews = [
     { user: { login: 'one' }, state: 'CHANGES_REQUESTED', submitted_at: '2026-01-01' },
@@ -32,4 +38,3 @@ test('mergeability maps null to unknown', () => {
   assert.equal(normalizeMergeability(false), 'CONFLICTING');
   assert.equal(normalizeMergeability(null), 'UNKNOWN');
 });
-
