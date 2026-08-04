@@ -160,6 +160,8 @@ In the GitHub repository's **Settings → Webhooks**, use JSON content and subsc
 - Check suites
 - Statuses
 
+Push events are intentionally excluded because these five events carry the PR, review, and CI changes that affect NORM's queue decisions.
+
 The endpoint responds quickly and serializes refreshes for each configured NORM repository. Unsupported events, repositories not registered in NORM, and status events that do not match a stored open PR are recorded as ignored. A restart resumes pending work; Manual Sync remains the fallback for a failed delivery.
 
 This feature adds the `webhook_deliveries` table. Run the explicit, non-destructive `npm run db:sync` against the deployed database after deploying the feature and before creating the GitHub webhook.
