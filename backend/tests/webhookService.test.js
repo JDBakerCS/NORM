@@ -126,3 +126,26 @@ test('a status delivery finds open PRs by head SHA before refreshing them', asyn
   assert.deepEqual(calls, [[9, 42]]);
   assert.equal(deliveries.rows[0].status, 'COMPLETED');
 });
+
+test('a status delivery with no matching open PR is safely ignored', async () => {
+  const deliveries = inMemoryDeliveryModel([{
+    id: 1,
+    deliveryId: 'delivery-4',
+    status: 'PENDING',
+    repositoryOwner: 'acme',
+    repositoryName: 'widget',
+    pullRequestNumbers: [],
+    headSha: 'unmatched-status-sha',
+  }]);
+  const calls = [];
+  const result = await processWebhookDelivery(1, {
+    deliveryModel: deliveries,
+    repositoryModel: { async findAll() { return [{ id: 9, owner: 'acme', name: 'widget' }]; } },
+    pullRequestModel: { async findAll() { return []; } },
+    async syncPullRequest(repository, pullRequestNumber) { calls.push([repository.id, pullRequestNumber]); },
+  });
+
+  assert.deepEqual(result, { processed: false, synchronized: 0 });
+  assert.deepEqual(calls, []);
+  assert.equal(deliveries.rows[0].status, 'IGNORED');
+});
