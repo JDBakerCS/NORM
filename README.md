@@ -140,6 +140,7 @@ After adding an owner and repository name, press **Sync from GitHub**. The backe
 7. marks previously imported PRs closed when GitHub no longer returns them as open.
 
 Repeated syncs update the same rows using database uniqueness constraints; they do not create duplicates.
+When a pull request is merged or closed on GitHub, the next sync removes it from NORM's active queues and records it as closed. NORM triages pull requests; it does not merge them.
 
 ## Testing
 
