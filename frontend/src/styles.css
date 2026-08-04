@@ -90,6 +90,8 @@ label small, label span { color: var(--muted); font-weight: 400; }
 .search-field > span:not(.sr-only) { position: absolute; left: 12px; top: 8px; font-size: 20px; color: var(--muted); }
 .search-field input { width: 220px; padding-left: 35px; }
 .sync-note { padding: 12px 25px; display: flex; justify-content: space-between; color: var(--muted); background: #f8faf7; font-size: 12px; }
+.sync-details { display: grid; gap: 3px; }
+.sync-details small { color: #78837d; font-size: 11px; }
 .sync-note button { border: 0; background: transparent; color: var(--green); font-weight: 700; cursor: pointer; }
 .pr-list { padding: 0 24px 24px; }
 .pr-card { display: grid; grid-template-columns: 78px 1fr auto; gap: 20px; padding: 25px 0; border-bottom: 1px solid var(--line); align-items: center; }
@@ -181,4 +183,3 @@ label small, label span { color: var(--muted); font-weight: 400; }
   .inline-form { align-items: stretch; flex-direction: column; }.danger-zone { align-items: flex-start; flex-direction: column; }
   .auth-page { grid-template-columns: 1fr; background: #f3f5f1; }.auth-intro { min-height: 270px; padding: 30px 24px; }.auth-intro h1 { font-size: 38px; margin-top: 55px; }.auth-intro p { display: none; }.auth-panel { border-radius: 24px 24px 0 0; margin-top: -20px; padding-top: 32px; }
 }
-
