@@ -8,7 +8,7 @@ These steps require a secret or an external website. All application code and lo
 2. Obtain its PostgreSQL connection string with permission to create tables and read/write rows.
 3. Put the value after `DATABASE_URL=` in `norm/backend/.env` (create it from `.env.example`). Do not paste it into chat.
 4. Also create a long random value for `JWT_SECRET` in the same file.
-5. Codex can verify afterward by running `npm run db:sync`, starting the backend, and requesting `GET /api/health`.
+5. For a new database, Codex can verify afterward by running `npm run db:sync`, starting the backend, and requesting `GET /api/health`. For an existing NORM database, also run `npm run db:migrate:review-coordination` once to add the reviewer and named-check fields without removing data.
 
 ## 2. Create the GitHub token
 
@@ -16,7 +16,7 @@ These steps require a secret or an external website. All application code and lo
 2. Scope repository access to the exact repositories NORM should import.
 3. Grant read-only repository metadata, pull requests, checks, and commit-status access. Grant no write permissions.
 4. Put the token after `GITHUB_TOKEN=` in `norm/backend/.env`. Do not paste it into chat or any frontend file.
-5. Add one accessible repository by owner/name in NORM. Codex can verify afterward by exercising the Sync endpoint and checking that a second sync updates rather than duplicates rows.
+5. Paste one accessible GitHub repository URL into NORM and add it. Codex can verify afterward by exercising the Sync endpoint and checking that a second sync updates rather than duplicates rows.
 
 ## 3. Create deployment services when ready
 

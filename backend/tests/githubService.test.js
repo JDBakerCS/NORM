@@ -37,3 +37,46 @@ test('other check-runs failures remain visible to the sync error handler', async
     (received) => received === error,
   );
 });
+
+test('requested reviewers preserve both user logins and team slugs', async () => {
+  const client = {
+    pulls: {
+      async listRequestedReviewers() {
+        return { data: { users: [{ login: 'octocat' }], teams: [{ slug: 'backend-team', name: 'Backend Team' }] } };
+      },
+    },
+  };
+
+  const result = await githubService.getRequestedReviewers('acme', 'widget', 42, client);
+  assert.deepEqual(result.users.map((user) => user.login), ['octocat']);
+  assert.deepEqual(result.teams.map((team) => team.slug), ['backend-team']);
+});
+
+test('pull request normalization stores reviewer routing and named checks', () => {
+  const result = githubService.normalizePullRequest({
+    details: {
+      id: 9,
+      number: 42,
+      title: 'Add reviewer routing',
+      user: { login: 'dev', type: 'User' },
+      html_url: 'https://github.com/acme/widget/pull/42',
+      head: { ref: 'feature/reviewers', sha: 'abc123' },
+      labels: [],
+      state: 'open',
+      created_at: '2026-08-01T00:00:00Z',
+      updated_at: '2026-08-02T00:00:00Z',
+      mergeable: true,
+    },
+    files: [{ filename: 'backend/routes/reviews.js', additions: 20, deletions: 5 }],
+    reviews: [],
+    requestedReviewers: { users: [{ login: 'octocat' }], teams: [{ slug: 'backend-team' }] },
+    checkRuns: [{ name: 'Unit tests', status: 'completed', conclusion: 'success' }],
+    commitStatuses: [],
+  });
+
+  assert.deepEqual(result.requestedReviewers, ['octocat']);
+  assert.deepEqual(result.requestedTeams, ['backend-team']);
+  assert.deepEqual(result.checkResults, [
+    { name: 'Unit tests', status: 'PASSED', detailsUrl: null, source: 'CHECK_RUN' },
+  ]);
+});

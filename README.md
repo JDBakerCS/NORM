@@ -1,4 +1,4 @@
-# NORM
+# NORM — Normalized Ordering of Reviews and Merges
 
 NORM is a GitHub-connected pull-request triage dashboard. It imports open pull requests, decides what action each one needs, and ranks the human-review queue with visible rules based on urgency, risk, change size, and waiting time.
 
@@ -62,7 +62,7 @@ npm run dev
 
 Open `http://localhost:5173`. The API health endpoint is `http://localhost:8080/api/health`.
 
-Normal backend startup only authenticates with PostgreSQL. It does not create, alter, or reset tables. `npm run db:sync` explicitly creates missing tables without forcing a reset.
+Normal backend startup only authenticates with PostgreSQL. It does not create, alter, or reset tables. `npm run db:sync` explicitly creates missing tables without forcing a reset. Existing databases created before reviewer routing and named checks were added must run `npm run db:migrate:review-coordination` once; the migration only adds the three missing JSON fields and does not remove data.
 
 ## Environment variables
 
@@ -115,6 +115,7 @@ Backend:
 npm run dev       # restart on backend changes
 npm start         # production-style startup
 npm run db:sync   # non-destructive schema creation
+npm run db:migrate:review-coordination # add reviewer/check fields to an existing database
 npm run seed      # explicit destructive demo reset
 npm test          # unit and service tests
 ```
@@ -129,11 +130,11 @@ npm run preview
 
 ## Manual synchronization
 
-After adding an owner and repository name, press **Sync from GitHub**. The backend:
+After pasting a GitHub repository URL and adding it, press **Sync from GitHub**. Browser URLs and HTTPS clone URLs ending in `.git` are both accepted. The backend:
 
 1. verifies repository access;
-2. retrieves open PRs, changed files, reviews, check runs, commit statuses, and mergeability;
-3. normalizes GitHub's responses;
+2. retrieves open PRs, changed files, reviews, requested reviewers and teams, check runs, commit statuses, and mergeability;
+3. normalizes GitHub's responses while preserving individual check names and states;
 4. detects configured agent signals;
 5. calculates queue status and priority;
 6. upserts each PR in one database transaction; and
@@ -173,6 +174,7 @@ cd norm/backend
 npm test
 
 cd ../frontend
+npm test
 npm run build
 ```
 
@@ -192,7 +194,7 @@ Then request `/api/health`, sign in, add an accessible GitHub repository, and pr
 
 1. Create a Neon PostgreSQL project.
 2. Copy its pooled connection string into Render as `DATABASE_URL`.
-3. Run `npm run db:sync` once against that connection before starting normal traffic. Run `npm run seed` only if you intentionally want to erase and replace its contents with demo data.
+3. For a new database, run `npm run db:sync` once against that connection before starting normal traffic. For an existing NORM database, also run `npm run db:migrate:review-coordination`. Run `npm run seed` only if you intentionally want to erase and replace its contents with demo data.
 
 ### Render backend
 
@@ -201,7 +203,7 @@ Then request `/api/health`, sign in, add an accessible GitHub repository, and pr
 - Build command: `npm install`
 - Start command: `npm start`
 - Health path: `/api/health`
-- Environment: `NODE_ENV=production`, `DATABASE_URL`, `JWT_SECRET`, `GITHUB_TOKEN`, and the stable Vercel URL as `FRONTEND_URL`.
+- Environment: `NODE_ENV=production`, `DATABASE_URL`, `JWT_SECRET`, `GITHUB_TOKEN`, optional `GITHUB_WEBHOOK_SECRET`, and the stable Vercel URL as `FRONTEND_URL`.
 
 The included `render.yaml` is a blueprint reference. Secret values are marked `sync: false`.
 
@@ -228,13 +230,13 @@ Vite embeds `VITE_API_URL` when it builds the frontend. After changing that vari
 
 ## MVP limitations
 
-- Sync is manual and runs one registered repository at a time.
+- Manual Sync runs one registered repository at a time; signed webhooks refresh affected PRs between manual reconciliations.
 - The interface uses the first team returned for the current user.
 - Large repositories may take time because detailed GitHub data is fetched per PR.
 - GitHub may report mergeability as unknown temporarily.
 - No checks and no reviews remain explicit `NOT_AVAILABLE` states.
-- There are no invitations, webhooks, GitHub OAuth/App installation, automatic actions, or code-quality analysis.
+- There are no invitations, GitHub OAuth/App installation, automatic GitHub actions, or code-quality analysis.
 
 ## Deferred stretch features
 
-Signed GitHub webhooks, Smee forwarding, multi-repository sync progress, and more configurable scoring are intentionally deferred until the manual-sync MVP is proven in a real deployment.
+Smee forwarding, multi-repository sync progress, CODEOWNERS matching, linked-issue context, and optional provider-neutral code-quality analysis remain deferred.

@@ -5,8 +5,7 @@ const LABELS = {
   MERGEABLE: 'Mergeable', CONFLICTING: 'Conflicting', UNKNOWN: 'Unknown',
 };
 
-export default function StatusBadge({ value, compact = false }) {
+export default function StatusBadge({ value, compact = false, label }) {
   const slug = String(value || 'UNKNOWN').toLowerCase().replaceAll('_', '-');
-  return <span className={`status-badge status-${slug}${compact ? ' compact' : ''}`}>{LABELS[value] || value}</span>;
+  return <span className={`status-badge status-${slug}${compact ? ' compact' : ''}`}>{label || LABELS[value] || value}</span>;
 }
-
