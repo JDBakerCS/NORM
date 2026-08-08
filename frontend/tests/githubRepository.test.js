@@ -11,8 +11,8 @@ test('parses a GitHub browser URL', () => {
 
 test('parses a GitHub clone URL and removes the .git suffix', () => {
   assert.deepEqual(
-    parseGitHubRepositoryUrl('https://github.com/Capstone-III-CleanSlate/CleanSlate_backend.git'),
-    { owner: 'Capstone-III-CleanSlate', name: 'CleanSlate_backend' },
+    parseGitHubRepositoryUrl('https://github.com/example-owner/example-repository.git'),
+    { owner: 'example-owner', name: 'example-repository' },
   );
 });
 

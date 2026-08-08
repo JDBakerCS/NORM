@@ -6,6 +6,7 @@ import LoadingState from '../components/LoadingState.jsx';
 import PriorityBreakdown from '../components/PriorityBreakdown.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { getAttentionLevel } from '../utils/priorityDisplay.js';
+import { getRepositoryDisplayName } from '../utils/repositoryDisplay.js';
 import { getReviewRequestSummary, sortNamedChecks } from '../utils/reviewCoordination.js';
 
 export default function PullRequestDetailPage() {
@@ -25,7 +26,7 @@ export default function PullRequestDetailPage() {
   return (
     <div className="detail-page">
       <Link className="back-link" to="/">← Back to queue</Link>
-      <section className="detail-heading"><div><p className="eyebrow">{pullRequest.Repository.fullName} · PR #{pullRequest.number}</p><h1>{pullRequest.title}</h1><p>Opened by <strong>{pullRequest.authorLogin}</strong> on {new Date(pullRequest.githubCreatedAt).toLocaleDateString()}</p></div><a className="button button-secondary" href={pullRequest.htmlUrl} target="_blank" rel="noreferrer">Open in GitHub ↗</a></section>
+      <section className="detail-heading"><div><p className="eyebrow">{getRepositoryDisplayName(pullRequest.Repository)} · PR #{pullRequest.number}</p><h1>{pullRequest.title}</h1><p>Opened by <strong>{pullRequest.authorLogin}</strong> on {new Date(pullRequest.githubCreatedAt).toLocaleDateString()}</p></div><a className="button button-secondary" href={pullRequest.htmlUrl} target="_blank" rel="noreferrer">Open in GitHub ↗</a></section>
       <div className="detail-grid">
         <section className="content-card"><div className="card-heading"><div><p className="eyebrow">Review guidance</p><h2>Why this needs attention</h2></div><span className={`attention-label attention-${attention.key.toLowerCase()}`}>{attention.label} attention</span></div><PriorityBreakdown pullRequest={pullRequest} /><h3>Signals</h3><ul className="reason-list">{pullRequest.priorityReasons.map((reason) => <li key={reason}>{reason}</li>)}{!pullRequest.priorityReasons.length && <li>No priority signals detected.</li>}</ul></section>
         <aside className="detail-sidebar">

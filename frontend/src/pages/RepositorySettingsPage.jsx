@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, errorMessage } from '../api/client.js';
 import ErrorMessage from '../components/ErrorMessage.jsx';
 import LoadingState from '../components/LoadingState.jsx';
+import { getRepositoryDisplayName } from '../utils/repositoryDisplay.js';
 
 export default function RepositorySettingsPage() {
   const { id } = useParams();
@@ -36,7 +37,7 @@ export default function RepositorySettingsPage() {
   }
 
   async function remove() {
-    if (!window.confirm(`Remove ${repository.fullName} and its imported pull requests from NORM? GitHub will not be changed.`)) return;
+    if (!window.confirm(`Remove ${getRepositoryDisplayName(repository)} and its imported pull requests from NORM? GitHub will not be changed.`)) return;
     try { await api.delete(`/repositories/${id}`); localStorage.removeItem('normRepositoryId'); navigate('/'); }
     catch (requestError) { setError(errorMessage(requestError)); }
   }
@@ -46,7 +47,7 @@ export default function RepositorySettingsPage() {
   return (
     <div className="settings-page narrow-page">
       <Link className="back-link" to="/">← Back to queue</Link>
-      <section className="page-heading"><div><p className="eyebrow">Repository rules</p><h1>{repository.fullName}</h1><p>These explicit rules affect agent detection, low-risk classification, and critical-file impact.</p></div></section>
+      <section className="page-heading"><div><p className="eyebrow">Repository rules</p><h1>{getRepositoryDisplayName(repository)}</h1><p>These explicit rules affect agent detection, low-risk classification, and critical-file impact.</p></div></section>
       <ErrorMessage message={error} />{notice && <div className="success-message">{notice}</div>}
       <form className="content-card settings-form" onSubmit={save}>
         <label>Critical paths<span>One path prefix per line. Matching files receive the highest impact score.</span><textarea rows="10" value={form.criticalPaths} onChange={(event) => setForm({ ...form, criticalPaths: event.target.value })} /></label>
