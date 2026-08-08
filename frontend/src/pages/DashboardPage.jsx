@@ -9,6 +9,7 @@ import RepositorySelector from '../components/RepositorySelector.jsx';
 import SearchAndFilters from '../components/SearchAndFilters.jsx';
 
 const QUEUES = ['REVIEW_NOW', 'RETURN_TO_AGENT', 'WAITING', 'LOW_RISK'];
+const AUTO_REFRESH_INTERVAL_MS = 30_000;
 
 export default function DashboardPage() {
   const [teams, setTeams] = useState([]);
@@ -22,6 +23,7 @@ export default function DashboardPage() {
   const [ciFilter, setCiFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [lastQueueRefreshAt, setLastQueueRefreshAt] = useState(null);
   const [error, setError] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [newRepository, setNewRepository] = useState({ owner: '', name: '' });
@@ -29,9 +31,10 @@ export default function DashboardPage() {
   const selectedRepository = repositories.find((repository) => repository.id === repositoryId);
 
   const loadPullRequests = useCallback(async (selectedId) => {
-    if (!selectedId) { setPullRequests([]); return; }
+    if (!selectedId) { setPullRequests([]); setLastQueueRefreshAt(null); return; }
     const { data } = await api.get(`/repositories/${selectedId}/pull-requests`, { params: { sort: 'priority' } });
     setPullRequests(data.pullRequests);
+    setLastQueueRefreshAt(new Date());
   }, []);
 
   useEffect(() => {
@@ -71,6 +74,36 @@ export default function DashboardPage() {
       .catch((requestError) => setError(errorMessage(requestError, 'Could not load pull requests')))
       .finally(() => setLoading(false));
   }, [repositoryId, loadPullRequests]);
+
+  useEffect(() => {
+    if (!repositoryId) return undefined;
+    let active = true;
+    let refreshing = false;
+
+    async function refreshQueue() {
+      if (document.visibilityState === 'hidden' || syncing || refreshing) return;
+      refreshing = true;
+      try {
+        await loadPullRequests(repositoryId);
+      } catch (requestError) {
+        if (active) setError(errorMessage(requestError, 'Could not refresh the review queue'));
+      } finally {
+        refreshing = false;
+      }
+    }
+
+    function refreshWhenVisible() {
+      if (document.visibilityState === 'visible') refreshQueue();
+    }
+
+    const intervalId = window.setInterval(refreshQueue, AUTO_REFRESH_INTERVAL_MS);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [repositoryId, syncing, loadPullRequests]);
 
   const counts = useMemo(() => Object.fromEntries(QUEUES.map((value) => [value, pullRequests.filter((pr) => pr.queueStatus === value).length])), [pullRequests]);
   const visible = useMemo(() => pullRequests.filter((pullRequest) => {
@@ -130,7 +163,7 @@ export default function DashboardPage() {
               <QueueTabs active={queue} counts={counts} onChange={setQueue} />
               <SearchAndFilters search={search} onSearch={setSearch} agentFilter={agentFilter} onAgentFilter={setAgentFilter} ciFilter={ciFilter} onCiFilter={setCiFilter} />
             </div>
-            <div className="sync-note"><span>{selectedRepository?.lastSyncedAt ? `Last synced ${new Date(selectedRepository.lastSyncedAt).toLocaleString()}` : 'Not synced with GitHub yet'}</span><button type="button" onClick={() => setShowAdd((value) => !value)}>+ Add repository</button></div>
+            <div className="sync-note"><div className="sync-details"><span>{selectedRepository?.lastSyncedAt ? `Last synced ${new Date(selectedRepository.lastSyncedAt).toLocaleString()}` : 'Not synced with GitHub yet'}</span><small>Auto-refreshes this queue every 30 seconds{lastQueueRefreshAt ? ` · Last checked ${lastQueueRefreshAt.toLocaleTimeString()}` : ''}</small></div><button type="button" onClick={() => setShowAdd((value) => !value)}>+ Add repository</button></div>
             {showAdd && <form className="inline-form add-repository-form toolbar-form" onSubmit={addRepository}><label>Owner<input required value={newRepository.owner} onChange={(event) => setNewRepository({ ...newRepository, owner: event.target.value })} /></label><label>Repository<input required value={newRepository.name} onChange={(event) => setNewRepository({ ...newRepository, name: event.target.value })} /></label><button className="button button-secondary">Save repository</button></form>}
             {loading ? <LoadingState label="Loading pull requests" /> : visible.length ? <div className="pr-list">{visible.map((pullRequest) => <PullRequestCard key={pullRequest.id} pullRequest={pullRequest} />)}</div> : <EmptyState title="Nothing in this queue" message="Try another queue or change the filters. A GitHub sync will refresh the latest state." />}
           </section>
@@ -139,4 +172,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
