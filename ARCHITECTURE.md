@@ -88,15 +88,17 @@ urgency (0–40) + impact (0–25) + size (0–20) + age (0–15)
 ```
 
 - Urgency uses the highest `priority:critical`, `high`, `medium`, or `normal` label.
-- Impact uses the maximum matching class: configured critical/security/data paths, operations, backend, frontend, documentation, or unknown.
+- Impact uses the maximum matching class: configured critical/security paths, shared data models and associations, operations, backend, frontend, documentation, or unknown.
 - Size uses changed-line boundaries at 50, 200, 500, and 1000.
 - Age uses boundaries at 1, 3, and 6 days.
 
 Each component and its human-readable reason are stored with the PR. Queue status is separate from priority, so a high-score draft still remains in `WAITING`.
 
-A low priority score means a PR needs less attention than its peers; it does not by itself declare the change safe or correct.
+A low aggregate priority score does not by itself declare a change safe or correct.
 
-The numeric score remains an internal ordering mechanism. The interface presents attention as `Critical`, `High`, `Normal`, or `Low`, derived from urgency and code impact so that change size and waiting time do not masquerade as business importance. Review size is shown separately as `Small`, `Medium`, or `Large`, and waiting time remains a separate aging signal.
+Within each action queue, the default order uses urgency plus code impact first, exact waiting time second, and review size third. This prevents a large routine change from outranking a smaller high-impact change solely because of line count. The aggregate numeric score remains stored for explanation and auditing, but it is not the sole ordering key.
+
+The interface presents attention as `Critical`, `High`, `Normal`, or `Low`, derived from urgency and code impact. Review size is shown separately as `Small`, `Medium`, or `Large`, and waiting time remains a separate aging signal.
 
 ## Security boundaries
 

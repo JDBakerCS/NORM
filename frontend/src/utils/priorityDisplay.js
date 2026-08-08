@@ -6,7 +6,7 @@ export function getAttentionLevel(pullRequest = {}) {
     return { key: 'CRITICAL', label: 'Critical', description: 'Critical urgency or code-area impact' };
   }
   if (urgency + impact >= 30 || impact >= 20) {
-    return { key: 'HIGH', label: 'High', description: 'Strong urgency or operational impact' };
+    return { key: 'HIGH', label: 'High', description: 'Strong urgency or broad code impact' };
   }
   if (urgency > 0 || impact >= 10) {
     return { key: 'NORMAL', label: 'Normal', description: 'Routine priority or application-code impact' };
