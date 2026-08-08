@@ -19,6 +19,22 @@ test('review size uses both changed lines and changed files', () => {
 });
 
 test('waiting time has readable full and compact labels', () => {
-  const waiting = getWaitingTime('2026-08-05T12:00:00Z', new Date('2026-08-08T12:00:00Z'));
-  assert.deepEqual(waiting, { days: 3, label: '3 days', compactLabel: '3d waiting' });
+  const now = new Date('2026-08-08T12:00:00Z');
+
+  assert.deepEqual(
+    getWaitingTime('2026-08-08T08:33:00Z', now),
+    { days: 0, label: '3 hours 27 minutes', compactLabel: '3h 27m waiting' },
+  );
+  assert.deepEqual(
+    getWaitingTime('2026-08-08T11:18:00Z', now),
+    { days: 0, label: '42 minutes', compactLabel: '42m waiting' },
+  );
+  assert.deepEqual(
+    getWaitingTime('2026-08-05T09:30:00Z', now),
+    { days: 3, label: '3 days 2 hours', compactLabel: '3d 2h waiting' },
+  );
+  assert.deepEqual(
+    getWaitingTime('2026-08-08T11:59:45Z', now),
+    { days: 0, label: 'Less than a minute', compactLabel: '<1m waiting' },
+  );
 });
