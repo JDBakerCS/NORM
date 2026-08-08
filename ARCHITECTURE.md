@@ -98,7 +98,7 @@ A low aggregate priority score does not by itself declare a change safe or corre
 
 Within each action queue, the default order uses urgency plus code impact first, exact waiting time second, and review size third. This prevents a large routine change from outranking a smaller high-impact change solely because of line count. The aggregate numeric score remains stored for explanation and auditing, but it is not the sole ordering key.
 
-The interface presents attention as `Critical`, `High`, `Normal`, or `Low`, derived from urgency and code impact. Review size is shown separately as `Small`, `Medium`, or `Large`, and waiting time remains a separate aging signal.
+The interface presents attention as `Critical`, `High`, `Normal`, or `Low`, derived from urgency and code impact. Review size is shown separately as `Small`, `Medium`, or `Large`, and waiting time remains a separate aging signal. Same-day waits show hours and minutes; older waits show days and hours.
 
 ## Security boundaries
 

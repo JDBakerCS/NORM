@@ -27,13 +27,42 @@ export function getReviewSize(pullRequest = {}) {
 export function getWaitingTime(githubCreatedAt, now = new Date()) {
   const created = new Date(githubCreatedAt);
   const current = new Date(now);
-  const days = Number.isNaN(created.getTime()) || Number.isNaN(current.getTime())
+  const elapsedMinutes = Number.isNaN(created.getTime()) || Number.isNaN(current.getTime())
     ? 0
-    : Math.max(0, Math.floor((current.getTime() - created.getTime()) / 86_400_000));
+    : Math.max(0, Math.floor((current.getTime() - created.getTime()) / 60_000));
+  const days = Math.floor(elapsedMinutes / 1_440);
+  const hours = Math.floor((elapsedMinutes % 1_440) / 60);
+  const minutes = elapsedMinutes % 60;
+
+  if (days > 0) {
+    const dayLabel = `${days} ${days === 1 ? 'day' : 'days'}`;
+    const hourLabel = hours > 0 ? ` ${hours} ${hours === 1 ? 'hour' : 'hours'}` : '';
+    return {
+      days,
+      label: `${dayLabel}${hourLabel}`,
+      compactLabel: `${days}d${hours > 0 ? ` ${hours}h` : ''} waiting`,
+    };
+  }
+
+  if (hours > 0) {
+    return {
+      days,
+      label: `${hours} ${hours === 1 ? 'hour' : 'hours'} ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`,
+      compactLabel: `${hours}h ${minutes}m waiting`,
+    };
+  }
+
+  if (minutes > 0) {
+    return {
+      days,
+      label: `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`,
+      compactLabel: `${minutes}m waiting`,
+    };
+  }
 
   return {
     days,
-    label: days === 0 ? 'Today' : `${days} ${days === 1 ? 'day' : 'days'}`,
-    compactLabel: days === 0 ? 'Today' : `${days}d waiting`,
+    label: 'Less than a minute',
+    compactLabel: '<1m waiting',
   };
 }
