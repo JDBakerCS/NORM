@@ -33,3 +33,4 @@ These steps require a secret or an external website. All application code and lo
 4. Set the payload URL to `https://YOUR-RENDER-SERVICE.onrender.com/api/github/webhook`, choose `application/json`, enter the same secret, and leave SSL verification enabled.
 5. Select individual events: **Pull requests**, **Pull request reviews**, **Check runs**, **Check suites**, and **Statuses**. GitHub sends a ping delivery when the webhook is saved; NORM safely records it as ignored.
 6. Open or update a pull request, then inspect the GitHub webhook's Recent Deliveries and the NORM queue. Use Manual Sync if a delivery fails or if GitHub did not send an event.
+7. A successful GitHub delivery confirms receipt, not necessarily completed synchronization. Refresh NORM and confirm the affected PR's queue state and `lastSyncedAt` changed.
