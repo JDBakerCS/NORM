@@ -5,8 +5,17 @@ import { requirePullRequestAccess, requireRepositoryAccess } from '../services/a
 import { classifyQueue } from '../services/queueService.js';
 import { AppError } from '../utils/AppError.js';
 
+export function buildPrioritySort(makeLiteral = literal) {
+  return [
+    [makeLiteral('"urgency_score" + "impact_score"'), 'DESC'],
+    ['githubCreatedAt', 'ASC'],
+    ['sizeScore', 'DESC'],
+    ['number', 'ASC'],
+  ];
+}
+
 const SORTS = {
-  priority: [['priorityScore', 'DESC'], ['githubCreatedAt', 'ASC']],
+  priority: buildPrioritySort(),
   oldest: [['githubCreatedAt', 'ASC']],
   newest: [['githubCreatedAt', 'DESC']],
   updated: [['githubUpdatedAt', 'DESC']],

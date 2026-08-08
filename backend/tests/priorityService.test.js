@@ -38,6 +38,14 @@ test('critical path matching works with configured prefixes', () => {
   assert.match(result.reason, /critical/i);
 });
 
+test('shared data models and association paths receive high impact', () => {
+  for (const path of ['models/User.js', 'src/models/Poll.js', 'database/associations.js', 'prisma/schema.prisma']) {
+    const result = calculateImpact([path], []);
+    assert.equal(result.score, 20, path);
+    assert.match(result.reason, /models|schemas|associations/i);
+  }
+});
+
 test('documentation-only changes receive documentation impact', () => {
   const result = calculateImpact(['README.md', 'docs/setup.md'], []);
   assert.equal(result.score, 2);
@@ -53,4 +61,3 @@ test('priority never exceeds 100 and reasons match scored components', () => {
   assert.equal(result.priorityReasons.some((reason) => reason.includes('1500')), true);
   assert.equal(result.urgencyScore + result.impactScore + result.sizeScore + result.ageScore, 100);
 });
-

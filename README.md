@@ -1,6 +1,6 @@
 # NORM — Normalized Ordering of Reviews and Merges
 
-NORM is a GitHub-connected pull-request triage dashboard. It imports open pull requests, decides what action each one needs, and ranks the human-review queue with visible rules based on urgency, risk, change size, and waiting time.
+NORM is a GitHub-connected pull-request triage dashboard. It imports open pull requests, decides what action each one needs, and ranks the human-review queue by urgency and code impact before using waiting time and review size as secondary signals.
 
 NORM does not review code, clone repositories, use an LLM, or write to GitHub.
 

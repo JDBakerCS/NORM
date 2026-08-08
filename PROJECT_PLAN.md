@@ -59,7 +59,7 @@
 
 ## Current Progress
 
-The complete MVP code and the read-only reviewer-coordination expansion are present. On August 8, 2026, all 40 backend tests and 11 frontend tests passed, and the Vite production build completed successfully.
+The complete MVP code, read-only reviewer-coordination expansion, data-layer impact classification, and importance-first queue ordering are present. On August 8, 2026, all 43 backend tests and 11 frontend tests passed, and the Vite production build completed successfully.
 
 ## Remaining Work
 
