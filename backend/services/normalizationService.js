@@ -1,14 +1,40 @@
+const ACTIVE_CHECK_STATES = new Set(['queued', 'in_progress', 'pending', 'requested', 'waiting']);
+const FAILED_CHECK_CONCLUSIONS = new Set(['failure', 'failed', 'timed_out', 'cancelled', 'action_required', 'error']);
+const SAFE_CHECK_CONCLUSIONS = new Set(['success', 'successful', 'neutral', 'skipped']);
+
+function normalizedCheckState(status, conclusion) {
+  const normalizedStatus = String(status || '').toLowerCase();
+  const normalizedConclusion = String(conclusion || '').toLowerCase();
+  if (ACTIVE_CHECK_STATES.has(normalizedStatus)) return 'RUNNING';
+  if (FAILED_CHECK_CONCLUSIONS.has(normalizedConclusion)) return 'FAILED';
+  if (normalizedStatus === 'completed' && SAFE_CHECK_CONCLUSIONS.has(normalizedConclusion)) return 'PASSED';
+  return 'RUNNING';
+}
+
+const cleanText = (value, maxLength) => String(value || '').trim().slice(0, maxLength);
+
+export function normalizeCheckResults(checkRuns = [], commitStatuses = []) {
+  const checkRunResults = checkRuns.map((check) => ({
+    name: cleanText(check.name || check.app?.name || 'GitHub check', 200),
+    status: normalizedCheckState(check.status, check.conclusion),
+    detailsUrl: cleanText(check.details_url || check.html_url, 500) || null,
+    source: 'CHECK_RUN',
+  }));
+  const commitStatusResults = commitStatuses.map((status) => ({
+    name: cleanText(status.context || 'Commit status', 200),
+    status: normalizedCheckState(status.state === 'pending' ? 'in_progress' : 'completed', status.state),
+    detailsUrl: cleanText(status.target_url, 500) || null,
+    source: 'COMMIT_STATUS',
+  }));
+  return [...checkRunResults, ...commitStatusResults].filter((result) => result.name).slice(0, 200);
+}
+
 export function normalizeCiStatus(checkRuns = [], commitStatuses = []) {
-  const checks = [
-    ...checkRuns.map((check) => ({ status: check.status, conclusion: check.conclusion })),
-    ...commitStatuses.map((status) => ({ status: status.state === 'pending' ? 'in_progress' : 'completed', conclusion: status.state })),
-  ];
-  if (checks.length === 0) return 'NOT_AVAILABLE';
-  if (checks.some((check) => ['queued', 'in_progress', 'pending', 'requested', 'waiting'].includes(check.status))) return 'RUNNING';
-  const failed = ['failure', 'failed', 'timed_out', 'cancelled', 'action_required', 'error'];
-  if (checks.some((check) => failed.includes(check.conclusion))) return 'FAILED';
-  const safe = ['success', 'successful', 'neutral', 'skipped'];
-  if (checks.every((check) => check.status === 'completed' && safe.includes(check.conclusion))) return 'PASSED';
+  const results = normalizeCheckResults(checkRuns, commitStatuses);
+  if (results.length === 0) return 'NOT_AVAILABLE';
+  if (results.some((result) => result.status === 'RUNNING')) return 'RUNNING';
+  if (results.some((result) => result.status === 'FAILED')) return 'FAILED';
+  if (results.every((result) => result.status === 'PASSED')) return 'PASSED';
   return 'RUNNING';
 }
 
@@ -31,4 +57,3 @@ export function normalizeMergeability(mergeable) {
   if (mergeable === false) return 'CONFLICTING';
   return 'UNKNOWN';
 }
-

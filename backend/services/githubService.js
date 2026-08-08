@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { normalizeCiStatus, normalizeMergeability, normalizeReviewStatus } from './normalizationService.js';
+import { normalizeCheckResults, normalizeCiStatus, normalizeMergeability, normalizeReviewStatus } from './normalizationService.js';
 import { AppError } from '../utils/AppError.js';
 
 function getClient() {
@@ -29,6 +29,11 @@ async function getReviews(owner, repo, pullNumber) {
   return getClient().paginate(getClient().pulls.listReviews, { owner, repo, pull_number: pullNumber, per_page: 100 });
 }
 
+async function getRequestedReviewers(owner, repo, pullNumber, client = getClient()) {
+  const { data } = await client.pulls.listRequestedReviewers({ owner, repo, pull_number: pullNumber });
+  return data;
+}
+
 async function getCheckRuns(owner, repo, ref, client = getClient()) {
   const { data } = await client.checks.listForRef({ owner, repo, ref, per_page: 100 });
   return data.check_runs || [];
@@ -56,11 +61,13 @@ async function getCommitStatuses(owner, repo, ref, client = getClient()) {
   return data.statuses || [];
 }
 
-function normalizePullRequest({ details, files, reviews, checkRuns, commitStatuses }) {
+function normalizePullRequest({ details, files, reviews, requestedReviewers, checkRuns, commitStatuses }) {
   const labels = (details.labels || []).map((label) => typeof label === 'string' ? label : label.name).filter(Boolean);
   const changedFilePaths = files.map((file) => file.filename).filter(Boolean);
   const additions = Number(details.additions) || files.reduce((sum, file) => sum + (Number(file.additions) || 0), 0);
   const deletions = Number(details.deletions) || files.reduce((sum, file) => sum + (Number(file.deletions) || 0), 0);
+  const requestedUsers = (requestedReviewers?.users || []).map((user) => user.login).filter(Boolean).slice(0, 100);
+  const requestedTeams = (requestedReviewers?.teams || []).map((team) => team.slug || team.name).filter(Boolean).slice(0, 100);
   return {
     githubPullRequestId: details.id,
     number: details.number,
@@ -78,6 +85,9 @@ function normalizePullRequest({ details, files, reviews, checkRuns, commitStatus
     changedLines: additions + deletions,
     changedFilesCount: Number(details.changed_files) || changedFilePaths.length,
     changedFilePaths,
+    requestedReviewers: requestedUsers,
+    requestedTeams,
+    checkResults: normalizeCheckResults(checkRuns, commitStatuses),
     headSha: details.head?.sha || '',
     ciStatus: normalizeCiStatus(checkRuns, commitStatuses),
     reviewStatus: normalizeReviewStatus(reviews),
@@ -91,13 +101,14 @@ async function syncPullRequest(owner, repo, pullSummary) {
   const pullNumber = pullSummary.number;
   const details = await getPullRequestDetails(owner, repo, pullNumber);
   const client = getClient();
-  const [files, reviews, checkRuns, commitStatuses] = await Promise.all([
+  const [files, reviews, requestedReviewers, checkRuns, commitStatuses] = await Promise.all([
     getChangedFiles(owner, repo, pullNumber),
     getReviews(owner, repo, pullNumber),
+    getRequestedReviewers(owner, repo, pullNumber),
     getCheckRunsWithPermissionFallback(owner, repo, details.head.sha, client),
     getCommitStatuses(owner, repo, details.head.sha, client),
   ]);
-  return normalizePullRequest({ details, files, reviews, checkRuns, commitStatuses });
+  return normalizePullRequest({ details, files, reviews, requestedReviewers, checkRuns, commitStatuses });
 }
 
 export const githubService = {
@@ -106,6 +117,7 @@ export const githubService = {
   getPullRequestDetails,
   getChangedFiles,
   getReviews,
+  getRequestedReviewers,
   getCheckRuns,
   getCheckRunsWithPermissionFallback,
   normalizePullRequest,

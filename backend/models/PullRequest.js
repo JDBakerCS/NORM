@@ -24,6 +24,9 @@ export function initPullRequest(sequelize) {
     changedLines: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
     changedFilesCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
     changedFilePaths: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+    requestedReviewers: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+    requestedTeams: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+    checkResults: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
     headSha: { type: DataTypes.STRING(64), allowNull: false, defaultValue: '' },
     ciStatus: { type: DataTypes.STRING(30), allowNull: false, defaultValue: 'NOT_AVAILABLE', validate: { isIn: [CI_STATUSES] } },
     reviewStatus: { type: DataTypes.STRING(30), allowNull: false, defaultValue: 'NOT_AVAILABLE', validate: { isIn: [REVIEW_STATUSES] } },
@@ -51,4 +54,3 @@ export function initPullRequest(sequelize) {
   });
   return PullRequest;
 }
-

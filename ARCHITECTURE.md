@@ -29,7 +29,7 @@ POST /api/repositories/:id/sync
   → membership check
   → get repository metadata
   → list open pull requests
-  → for each PR: details + files + reviews + checks + commit statuses
+  → for each PR: details + files + reviews + requested reviewers/teams + checks + commit statuses
   → normalize raw GitHub objects
   → detect agent signals
   → calculate priority and queue
@@ -57,9 +57,11 @@ NORM accepts `pull_request`, `pull_request_review`, `check_run`, `check_suite`, 
 
 ## Status normalization
 
-CI status is `RUNNING` if any check is queued or active, `FAILED` if a completed check has a failing conclusion, `PASSED` only when all available checks are successful/neutral/skipped, and `NOT_AVAILABLE` when no checks exist.
+CI status is `RUNNING` if any check is queued or active, `FAILED` if a completed check has a failing conclusion, `PASSED` only when all available checks are successful/neutral/skipped, and `NOT_AVAILABLE` when no checks exist. NORM also stores each check run or commit status as a bounded `{ name, status, detailsUrl, source }` record so the interface can explain which automation passed, failed, or is still running.
 
 Review normalization keeps the latest meaningful review per reviewer. Any active latest change request wins; otherwise an approval wins; otherwise the result is pending or unavailable.
+
+Requested GitHub users and teams are stored separately from completed reviews. A requested reviewer disappears from GitHub's active request list after responding, so NORM uses the normalized review state to distinguish an approval or change request from a PR that has no active reviewer assignment.
 
 Mergeability is `MERGEABLE`, `CONFLICTING`, or `UNKNOWN`. A temporary GitHub `null` becomes `UNKNOWN`.
 
@@ -94,10 +96,13 @@ Each component and its human-readable reason are stored with the PR. Queue statu
 
 A low priority score means a PR needs less attention than its peers; it does not by itself declare the change safe or correct.
 
+The numeric score remains an internal ordering mechanism. The interface presents attention as `Critical`, `High`, `Normal`, or `Low`, derived from urgency and code impact so that change size and waiting time do not masquerade as business importance. Review size is shown separately as `Small`, `Medium`, or `Large`, and waiting time remains a separate aging signal.
+
 ## Security boundaries
 
 - `GITHUB_TOKEN`, `DATABASE_URL`, and `JWT_SECRET` are backend-only.
 - Octokit methods only read repository content and metadata.
+- Reviewer routing uses read-only pull-request metadata; NORM never requests a review or sends a GitHub notification.
 - Passwords are hashed with bcrypt cost 12.
 - CORS permits only `FRONTEND_URL`.
 - Repository identifiers accept GitHub owner/name syntax, not arbitrary URLs.

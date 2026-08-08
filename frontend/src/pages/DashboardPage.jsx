@@ -7,6 +7,7 @@ import PullRequestCard from '../components/PullRequestCard.jsx';
 import QueueTabs from '../components/QueueTabs.jsx';
 import RepositorySelector from '../components/RepositorySelector.jsx';
 import SearchAndFilters from '../components/SearchAndFilters.jsx';
+import { parseGitHubRepositoryUrl } from '../utils/githubRepository.js';
 
 const QUEUES = ['REVIEW_NOW', 'RETURN_TO_AGENT', 'WAITING', 'LOW_RISK'];
 const AUTO_REFRESH_INTERVAL_MS = 30_000;
@@ -26,7 +27,7 @@ export default function DashboardPage() {
   const [lastQueueRefreshAt, setLastQueueRefreshAt] = useState(null);
   const [error, setError] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [newRepository, setNewRepository] = useState({ owner: '', name: '' });
+  const [newRepositoryUrl, setNewRepositoryUrl] = useState('');
 
   const selectedRepository = repositories.find((repository) => repository.id === repositoryId);
 
@@ -127,10 +128,11 @@ export default function DashboardPage() {
   async function addRepository(event) {
     event.preventDefault(); setError('');
     try {
-      const { data } = await api.post(`/teams/${activeTeamId}/repositories`, newRepository);
+      const repositoryIdentity = parseGitHubRepositoryUrl(newRepositoryUrl);
+      const { data } = await api.post(`/teams/${activeTeamId}/repositories`, repositoryIdentity);
       setRepositories((current) => [...current, data.repository]);
       setRepositoryId(data.repository.id);
-      setNewRepository({ owner: '', name: '' });
+      setNewRepositoryUrl('');
       setShowAdd(false);
     } catch (requestError) { setError(errorMessage(requestError, 'Could not add repository')); }
   }
@@ -146,9 +148,9 @@ export default function DashboardPage() {
       <ErrorMessage message={error} onRetry={repositoryId ? () => loadPullRequests(repositoryId) : undefined} />
 
       {repositories.length === 0 ? (
-        <EmptyState title="Connect your first repository" message="Add its GitHub owner and repository name. NORM will import pull requests when you press Sync.">
+        <EmptyState title="Connect your first repository" message="Paste its GitHub URL. NORM will import pull requests when you press Sync.">
           {!showAdd && <button className="button button-primary" type="button" onClick={() => setShowAdd(true)}>Add repository</button>}
-          {showAdd && <form className="inline-form add-repository-form" onSubmit={addRepository}><label>Owner<input required value={newRepository.owner} onChange={(event) => setNewRepository({ ...newRepository, owner: event.target.value })} placeholder="octocat" /></label><label>Repository<input required value={newRepository.name} onChange={(event) => setNewRepository({ ...newRepository, name: event.target.value })} placeholder="hello-world" /></label><button className="button button-primary">Add</button></form>}
+          {showAdd && <form className="inline-form add-repository-form" onSubmit={addRepository}><label className="repository-url-field">GitHub repository URL<input required inputMode="url" autoComplete="url" value={newRepositoryUrl} onChange={(event) => setNewRepositoryUrl(event.target.value)} placeholder="https://github.com/owner/repository" /></label><button className="button button-primary">Add</button></form>}
         </EmptyState>
       ) : (
         <>
@@ -164,7 +166,7 @@ export default function DashboardPage() {
               <SearchAndFilters search={search} onSearch={setSearch} agentFilter={agentFilter} onAgentFilter={setAgentFilter} ciFilter={ciFilter} onCiFilter={setCiFilter} />
             </div>
             <div className="sync-note"><div className="sync-details"><span>{selectedRepository?.lastSyncedAt ? `Last synced ${new Date(selectedRepository.lastSyncedAt).toLocaleString()}` : 'Not synced with GitHub yet'}</span><small>Auto-refreshes this queue every 30 seconds{lastQueueRefreshAt ? ` · Last checked ${lastQueueRefreshAt.toLocaleTimeString()}` : ''}</small></div><button type="button" onClick={() => setShowAdd((value) => !value)}>+ Add repository</button></div>
-            {showAdd && <form className="inline-form add-repository-form toolbar-form" onSubmit={addRepository}><label>Owner<input required value={newRepository.owner} onChange={(event) => setNewRepository({ ...newRepository, owner: event.target.value })} /></label><label>Repository<input required value={newRepository.name} onChange={(event) => setNewRepository({ ...newRepository, name: event.target.value })} /></label><button className="button button-secondary">Save repository</button></form>}
+            {showAdd && <form className="inline-form add-repository-form toolbar-form" onSubmit={addRepository}><label className="repository-url-field">GitHub repository URL<input required inputMode="url" autoComplete="url" value={newRepositoryUrl} onChange={(event) => setNewRepositoryUrl(event.target.value)} placeholder="https://github.com/owner/repository" /></label><button className="button button-secondary">Save repository</button></form>}
             {loading ? <LoadingState label="Loading pull requests" /> : visible.length ? <div className="pr-list">{visible.map((pullRequest) => <PullRequestCard key={pullRequest.id} pullRequest={pullRequest} />)}</div> : <EmptyState title="Nothing in this queue" message="Try another queue or change the filters. A GitHub sync will refresh the latest state." />}
           </section>
         </>
