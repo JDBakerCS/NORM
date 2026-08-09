@@ -1,9 +1,19 @@
 import { Octokit } from '@octokit/rest';
-import { normalizeCheckResults, normalizeCiStatus, normalizeMergeability, normalizeReviewStatus } from './normalizationService.js';
+import {
+  normalizeCheckResults,
+  normalizeCiStatus,
+  normalizeMergeability,
+  normalizeReviewStatus,
+} from './normalizationService.js';
 import { AppError } from '../utils/AppError.js';
 
 function getClient() {
-  if (!process.env.GITHUB_TOKEN) throw new AppError('GITHUB_TOKEN is not configured on the backend', 503, 'GITHUB_TOKEN_MISSING');
+  if (!process.env.GITHUB_TOKEN)
+    throw new AppError(
+      'GITHUB_TOKEN is not configured on the backend',
+      503,
+      'GITHUB_TOKEN_MISSING',
+    );
   return new Octokit({ auth: process.env.GITHUB_TOKEN, userAgent: 'norm-pr-triage/1.0' });
 }
 
@@ -13,7 +23,12 @@ async function getRepository(owner, repo) {
 }
 
 async function getOpenPullRequests(owner, repo) {
-  return getClient().paginate(getClient().pulls.list, { owner, repo, state: 'open', per_page: 100 });
+  return getClient().paginate(getClient().pulls.list, {
+    owner,
+    repo,
+    state: 'open',
+    per_page: 100,
+  });
 }
 
 async function getPullRequestDetails(owner, repo, pullNumber) {
@@ -22,15 +37,29 @@ async function getPullRequestDetails(owner, repo, pullNumber) {
 }
 
 async function getChangedFiles(owner, repo, pullNumber) {
-  return getClient().paginate(getClient().pulls.listFiles, { owner, repo, pull_number: pullNumber, per_page: 100 });
+  return getClient().paginate(getClient().pulls.listFiles, {
+    owner,
+    repo,
+    pull_number: pullNumber,
+    per_page: 100,
+  });
 }
 
 async function getReviews(owner, repo, pullNumber) {
-  return getClient().paginate(getClient().pulls.listReviews, { owner, repo, pull_number: pullNumber, per_page: 100 });
+  return getClient().paginate(getClient().pulls.listReviews, {
+    owner,
+    repo,
+    pull_number: pullNumber,
+    per_page: 100,
+  });
 }
 
 async function getRequestedReviewers(owner, repo, pullNumber, client = getClient()) {
-  const { data } = await client.pulls.listRequestedReviewers({ owner, repo, pull_number: pullNumber });
+  const { data } = await client.pulls.listRequestedReviewers({
+    owner,
+    repo,
+    pull_number: pullNumber,
+  });
   return data;
 }
 
@@ -41,9 +70,15 @@ async function getCheckRuns(owner, repo, ref, client = getClient()) {
 
 function isMissingChecksReadPermission(error) {
   const acceptedPermissions = error.response?.headers?.['x-accepted-github-permissions'];
-  return error.status === 403
-    && typeof acceptedPermissions === 'string'
-    && acceptedPermissions.toLowerCase().split(',').map((permission) => permission.trim()).includes('checks=read');
+  return (
+    error.status === 403 &&
+    typeof acceptedPermissions === 'string' &&
+    acceptedPermissions
+      .toLowerCase()
+      .split(',')
+      .map((permission) => permission.trim())
+      .includes('checks=read')
+  );
 }
 
 async function getCheckRunsWithPermissionFallback(owner, repo, ref, client = getClient()) {
@@ -61,13 +96,32 @@ async function getCommitStatuses(owner, repo, ref, client = getClient()) {
   return data.statuses || [];
 }
 
-function normalizePullRequest({ details, files, reviews, requestedReviewers, checkRuns, commitStatuses }) {
-  const labels = (details.labels || []).map((label) => typeof label === 'string' ? label : label.name).filter(Boolean);
+function normalizePullRequest({
+  details,
+  files,
+  reviews,
+  requestedReviewers,
+  checkRuns,
+  commitStatuses,
+}) {
+  const labels = (details.labels || [])
+    .map((label) => (typeof label === 'string' ? label : label.name))
+    .filter(Boolean);
   const changedFilePaths = files.map((file) => file.filename).filter(Boolean);
-  const additions = Number(details.additions) || files.reduce((sum, file) => sum + (Number(file.additions) || 0), 0);
-  const deletions = Number(details.deletions) || files.reduce((sum, file) => sum + (Number(file.deletions) || 0), 0);
-  const requestedUsers = (requestedReviewers?.users || []).map((user) => user.login).filter(Boolean).slice(0, 100);
-  const requestedTeams = (requestedReviewers?.teams || []).map((team) => team.slug || team.name).filter(Boolean).slice(0, 100);
+  const additions =
+    Number(details.additions) ||
+    files.reduce((sum, file) => sum + (Number(file.additions) || 0), 0);
+  const deletions =
+    Number(details.deletions) ||
+    files.reduce((sum, file) => sum + (Number(file.deletions) || 0), 0);
+  const requestedUsers = (requestedReviewers?.users || [])
+    .map((user) => user.login)
+    .filter(Boolean)
+    .slice(0, 100);
+  const requestedTeams = (requestedReviewers?.teams || [])
+    .map((team) => team.slug || team.name)
+    .filter(Boolean)
+    .slice(0, 100);
   return {
     githubPullRequestId: details.id,
     number: details.number,
@@ -108,7 +162,14 @@ async function syncPullRequest(owner, repo, pullSummary) {
     getCheckRunsWithPermissionFallback(owner, repo, details.head.sha, client),
     getCommitStatuses(owner, repo, details.head.sha, client),
   ]);
-  return normalizePullRequest({ details, files, reviews, requestedReviewers, checkRuns, commitStatuses });
+  return normalizePullRequest({
+    details,
+    files,
+    reviews,
+    requestedReviewers,
+    checkRuns,
+    commitStatuses,
+  });
 }
 
 export const githubService = {

@@ -8,4 +8,3 @@ router.post('/register', asyncHandler(register));
 router.post('/login', asyncHandler(login));
 router.get('/me', authenticateUser, asyncHandler(me));
 export default router;
-

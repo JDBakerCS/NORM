@@ -7,14 +7,19 @@ import { AppError } from '../utils/AppError.js';
 export function detectAgentGenerated(pullRequest, repository) {
   const labels = (pullRequest.labels || []).map((label) => label.toLowerCase());
   const accounts = (repository.agentAccounts || []).map((account) => account.toLowerCase());
-  return labels.includes('agent-generated')
-    || pullRequest.branchName.toLowerCase().startsWith('agent/')
-    || pullRequest.authorType.toLowerCase() === 'bot'
-    || accounts.includes(pullRequest.authorLogin.toLowerCase());
+  return (
+    labels.includes('agent-generated') ||
+    pullRequest.branchName.toLowerCase().startsWith('agent/') ||
+    pullRequest.authorType.toLowerCase() === 'bot' ||
+    accounts.includes(pullRequest.authorLogin.toLowerCase())
+  );
 }
 
 export function applyDecisionRules(pullRequest, repository, now = new Date()) {
-  const withAgentFlag = { ...pullRequest, isAgentGenerated: detectAgentGenerated(pullRequest, repository) };
+  const withAgentFlag = {
+    ...pullRequest,
+    isAgentGenerated: detectAgentGenerated(pullRequest, repository),
+  };
   const priority = calculatePriority(withAgentFlag, repository, now);
   const queue = classifyQueue(withAgentFlag, repository);
   return { ...withAgentFlag, ...priority, queueStatus: queue.queueStatus };
@@ -52,7 +57,9 @@ export async function syncSinglePullRequest(
   runTransaction = (work) => sequelize.transaction(work),
 ) {
   try {
-    const pullRequest = await provider.syncPullRequest(repository.owner, repository.name, { number: pullNumber });
+    const pullRequest = await provider.syncPullRequest(repository.owner, repository.name, {
+      number: pullNumber,
+    });
     const syncedAt = new Date();
     const row = toSyncedRow(pullRequest, repository, syncedAt);
     await runTransaction(async (transaction) => {
@@ -76,25 +83,36 @@ export async function syncRepository(
     const openSummaries = await provider.getOpenPullRequests(repository.owner, repository.name);
     const normalizedPullRequests = [];
     for (const summary of openSummaries) {
-      normalizedPullRequests.push(await provider.syncPullRequest(repository.owner, repository.name, summary));
+      normalizedPullRequests.push(
+        await provider.syncPullRequest(repository.owner, repository.name, summary),
+      );
     }
 
     const syncedAt = new Date();
-    const rows = normalizedPullRequests.map((pullRequest) => toSyncedRow(pullRequest, repository, syncedAt));
+    const rows = normalizedPullRequests.map((pullRequest) =>
+      toSyncedRow(pullRequest, repository, syncedAt),
+    );
 
     await runTransaction(async (transaction) => {
-      await repository.update({
-        githubRepositoryId: githubRepository.id,
-        fullName: githubRepository.full_name,
-        htmlUrl: githubRepository.html_url,
-        defaultBranch: githubRepository.default_branch || repository.defaultBranch,
-        lastSyncedAt: syncedAt,
-      }, { transaction });
+      await repository.update(
+        {
+          githubRepositoryId: githubRepository.id,
+          fullName: githubRepository.full_name,
+          htmlUrl: githubRepository.html_url,
+          defaultBranch: githubRepository.default_branch || repository.defaultBranch,
+          lastSyncedAt: syncedAt,
+        },
+        { transaction },
+      );
 
       const openIds = rows.map((row) => String(row.githubPullRequestId));
-      const existingOpen = await pullRequestModel.findAll({ where: { repositoryId: repository.id, state: 'open' }, transaction });
+      const existingOpen = await pullRequestModel.findAll({
+        where: { repositoryId: repository.id, state: 'open' },
+        transaction,
+      });
       for (const existing of existingOpen) {
-        if (!openIds.includes(String(existing.githubPullRequestId))) await existing.update({ state: 'closed', lastSyncedAt: syncedAt }, { transaction });
+        if (!openIds.includes(String(existing.githubPullRequestId)))
+          await existing.update({ state: 'closed', lastSyncedAt: syncedAt }, { transaction });
       }
 
       for (const row of rows) {
@@ -103,5 +121,7 @@ export async function syncRepository(
     });
 
     return { imported: rows.length, repository, syncedAt };
-  } catch (error) { throw toGithubSyncError(error); }
+  } catch (error) {
+    throw toGithubSyncError(error);
+  }
 }

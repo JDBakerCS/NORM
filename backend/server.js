@@ -10,7 +10,9 @@ async function startServer() {
     await sequelize.authenticate();
     app.listen(port, () => {
       console.log(`NORM backend listening on port ${port}`);
-      resumePendingWebhookDeliveries().catch((error) => console.error(`[WEBHOOK_RECOVERY_FAILED] ${error.message}`));
+      resumePendingWebhookDeliveries().catch((error) =>
+        console.error(`[WEBHOOK_RECOVERY_FAILED] ${error.message}`),
+      );
     });
   } catch (error) {
     console.error(`Database connection failed: ${error.message}`);

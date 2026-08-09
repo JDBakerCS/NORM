@@ -1,5 +1,12 @@
 import { Router } from 'express';
-import { createRepository, deleteRepository, getRepository, listRepositories, synchronizeRepository, updateRepository } from '../controllers/repositoryController.js';
+import {
+  createRepository,
+  deleteRepository,
+  getRepository,
+  listRepositories,
+  synchronizeRepository,
+  updateRepository,
+} from '../controllers/repositoryController.js';
 import { listPullRequests } from '../controllers/pullRequestController.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -13,4 +20,3 @@ repositoryRouter.patch('/:repositoryId', asyncHandler(updateRepository));
 repositoryRouter.delete('/:repositoryId', asyncHandler(deleteRepository));
 repositoryRouter.post('/:repositoryId/sync', asyncHandler(synchronizeRepository));
 repositoryRouter.get('/:repositoryId/pull-requests', asyncHandler(listPullRequests));
-

@@ -6,7 +6,9 @@ import { normalizeCiStatus } from '../services/normalizationService.js';
 function clientWithCheckRunError(error) {
   return {
     checks: {
-      async listForRef() { throw error; },
+      async listForRef() {
+        throw error;
+      },
     },
   };
 }
@@ -33,7 +35,12 @@ test('other check-runs failures remain visible to the sync error handler', async
   error.response = { headers: { 'x-ratelimit-remaining': '0' } };
 
   await assert.rejects(
-    githubService.getCheckRunsWithPermissionFallback('acme', 'widget', 'abc123', clientWithCheckRunError(error)),
+    githubService.getCheckRunsWithPermissionFallback(
+      'acme',
+      'widget',
+      'abc123',
+      clientWithCheckRunError(error),
+    ),
     (received) => received === error,
   );
 });
@@ -42,14 +49,25 @@ test('requested reviewers preserve both user logins and team slugs', async () =>
   const client = {
     pulls: {
       async listRequestedReviewers() {
-        return { data: { users: [{ login: 'octocat' }], teams: [{ slug: 'backend-team', name: 'Backend Team' }] } };
+        return {
+          data: {
+            users: [{ login: 'octocat' }],
+            teams: [{ slug: 'backend-team', name: 'Backend Team' }],
+          },
+        };
       },
     },
   };
 
   const result = await githubService.getRequestedReviewers('acme', 'widget', 42, client);
-  assert.deepEqual(result.users.map((user) => user.login), ['octocat']);
-  assert.deepEqual(result.teams.map((team) => team.slug), ['backend-team']);
+  assert.deepEqual(
+    result.users.map((user) => user.login),
+    ['octocat'],
+  );
+  assert.deepEqual(
+    result.teams.map((team) => team.slug),
+    ['backend-team'],
+  );
 });
 
 test('pull request normalization stores reviewer routing and named checks', () => {

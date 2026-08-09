@@ -1,12 +1,19 @@
 import crypto from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getWebhookMetadata, processWebhookDelivery, registerWebhookDelivery, verifyWebhookSignature } from '../services/webhookService.js';
+import {
+  getWebhookMetadata,
+  processWebhookDelivery,
+  registerWebhookDelivery,
+  verifyWebhookSignature,
+} from '../services/webhookService.js';
 
 function createDelivery(values) {
   return {
     ...values,
-    async update(updates) { Object.assign(this, updates); },
+    async update(updates) {
+      Object.assign(this, updates);
+    },
   };
 }
 
@@ -21,8 +28,12 @@ function inMemoryDeliveryModel(initialRows = []) {
       rows.push(row);
       return [row, true];
     },
-    async findByPk(id) { return rows.find((row) => row.id === id) || null; },
-    async findAll() { return rows; },
+    async findByPk(id) {
+      return rows.find((row) => row.id === id) || null;
+    },
+    async findAll() {
+      return rows;
+    },
   };
 }
 
@@ -61,8 +72,14 @@ test('webhook metadata identifies PRs directly and through check-run payloads', 
 
 test('a repeated GitHub delivery is recorded once and does not schedule duplicate work', async () => {
   const deliveries = inMemoryDeliveryModel();
-  const first = await registerWebhookDelivery({ deliveryId: 'delivery-1', event: 'pull_request', payload: pullRequestPayload }, deliveries);
-  const second = await registerWebhookDelivery({ deliveryId: 'delivery-1', event: 'pull_request', payload: pullRequestPayload }, deliveries);
+  const first = await registerWebhookDelivery(
+    { deliveryId: 'delivery-1', event: 'pull_request', payload: pullRequestPayload },
+    deliveries,
+  );
+  const second = await registerWebhookDelivery(
+    { deliveryId: 'delivery-1', event: 'pull_request', payload: pullRequestPayload },
+    deliveries,
+  );
 
   assert.equal(first.duplicate, false);
   assert.equal(first.shouldProcess, true);
@@ -74,7 +91,10 @@ test('a repeated GitHub delivery is recorded once and does not schedule duplicat
 
 test('an unsupported ping delivery is safely recorded without scheduling a sync', async () => {
   const deliveries = inMemoryDeliveryModel();
-  const result = await registerWebhookDelivery({ deliveryId: 'delivery-ping', event: 'ping', payload: { zen: 'Keep it logically awesome.' } }, deliveries);
+  const result = await registerWebhookDelivery(
+    { deliveryId: 'delivery-ping', event: 'ping', payload: { zen: 'Keep it logically awesome.' } },
+    deliveries,
+  );
 
   assert.equal(result.duplicate, false);
   assert.equal(result.shouldProcess, false);
@@ -83,21 +103,33 @@ test('an unsupported ping delivery is safely recorded without scheduling a sync'
 });
 
 test('a PR delivery refreshes the matching registered repository', async () => {
-  const deliveries = inMemoryDeliveryModel([{
-    id: 1,
-    deliveryId: 'delivery-2',
-    status: 'PENDING',
-    repositoryOwner: 'acme',
-    repositoryName: 'widget',
-    pullRequestNumbers: [42],
-    headSha: 'abc123',
-  }]);
+  const deliveries = inMemoryDeliveryModel([
+    {
+      id: 1,
+      deliveryId: 'delivery-2',
+      status: 'PENDING',
+      repositoryOwner: 'acme',
+      repositoryName: 'widget',
+      pullRequestNumbers: [42],
+      headSha: 'abc123',
+    },
+  ]);
   const calls = [];
   const result = await processWebhookDelivery(1, {
     deliveryModel: deliveries,
-    repositoryModel: { async findAll() { return [{ id: 9, owner: 'acme', name: 'widget' }]; } },
-    pullRequestModel: { async findAll() { throw new Error('Direct PR number should not need a SHA lookup'); } },
-    async syncPullRequest(repository, pullRequestNumber) { calls.push([repository.id, pullRequestNumber]); },
+    repositoryModel: {
+      async findAll() {
+        return [{ id: 9, owner: 'acme', name: 'widget' }];
+      },
+    },
+    pullRequestModel: {
+      async findAll() {
+        throw new Error('Direct PR number should not need a SHA lookup');
+      },
+    },
+    async syncPullRequest(repository, pullRequestNumber) {
+      calls.push([repository.id, pullRequestNumber]);
+    },
   });
 
   assert.deepEqual(calls, [[9, 42]]);
@@ -106,21 +138,33 @@ test('a PR delivery refreshes the matching registered repository', async () => {
 });
 
 test('a status delivery finds open PRs by head SHA before refreshing them', async () => {
-  const deliveries = inMemoryDeliveryModel([{
-    id: 1,
-    deliveryId: 'delivery-3',
-    status: 'PENDING',
-    repositoryOwner: 'acme',
-    repositoryName: 'widget',
-    pullRequestNumbers: [],
-    headSha: 'status-sha',
-  }]);
+  const deliveries = inMemoryDeliveryModel([
+    {
+      id: 1,
+      deliveryId: 'delivery-3',
+      status: 'PENDING',
+      repositoryOwner: 'acme',
+      repositoryName: 'widget',
+      pullRequestNumbers: [],
+      headSha: 'status-sha',
+    },
+  ]);
   const calls = [];
   await processWebhookDelivery(1, {
     deliveryModel: deliveries,
-    repositoryModel: { async findAll() { return [{ id: 9, owner: 'acme', name: 'widget' }]; } },
-    pullRequestModel: { async findAll() { return [{ number: 42 }]; } },
-    async syncPullRequest(repository, pullRequestNumber) { calls.push([repository.id, pullRequestNumber]); },
+    repositoryModel: {
+      async findAll() {
+        return [{ id: 9, owner: 'acme', name: 'widget' }];
+      },
+    },
+    pullRequestModel: {
+      async findAll() {
+        return [{ number: 42 }];
+      },
+    },
+    async syncPullRequest(repository, pullRequestNumber) {
+      calls.push([repository.id, pullRequestNumber]);
+    },
   });
 
   assert.deepEqual(calls, [[9, 42]]);
@@ -128,21 +172,33 @@ test('a status delivery finds open PRs by head SHA before refreshing them', asyn
 });
 
 test('a status delivery with no matching open PR is safely ignored', async () => {
-  const deliveries = inMemoryDeliveryModel([{
-    id: 1,
-    deliveryId: 'delivery-4',
-    status: 'PENDING',
-    repositoryOwner: 'acme',
-    repositoryName: 'widget',
-    pullRequestNumbers: [],
-    headSha: 'unmatched-status-sha',
-  }]);
+  const deliveries = inMemoryDeliveryModel([
+    {
+      id: 1,
+      deliveryId: 'delivery-4',
+      status: 'PENDING',
+      repositoryOwner: 'acme',
+      repositoryName: 'widget',
+      pullRequestNumbers: [],
+      headSha: 'unmatched-status-sha',
+    },
+  ]);
   const calls = [];
   const result = await processWebhookDelivery(1, {
     deliveryModel: deliveries,
-    repositoryModel: { async findAll() { return [{ id: 9, owner: 'acme', name: 'widget' }]; } },
-    pullRequestModel: { async findAll() { return []; } },
-    async syncPullRequest(repository, pullRequestNumber) { calls.push([repository.id, pullRequestNumber]); },
+    repositoryModel: {
+      async findAll() {
+        return [{ id: 9, owner: 'acme', name: 'widget' }];
+      },
+    },
+    pullRequestModel: {
+      async findAll() {
+        return [];
+      },
+    },
+    async syncPullRequest(repository, pullRequestNumber) {
+      calls.push([repository.id, pullRequestNumber]);
+    },
   });
 
   assert.deepEqual(result, { processed: false, synchronized: 0 });

@@ -1,11 +1,12 @@
 const OWNER_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9._-]{1,100}$/;
 
-const INVALID_URL_MESSAGE = 'Paste a GitHub repository URL like https://github.com/owner/repository';
+const INVALID_URL_MESSAGE =
+  'Paste a GitHub repository URL like https://github.com/owner/repository';
 
 export function parseGitHubRepositoryUrl(input) {
   const value = String(input || '').trim();
-  if (!value) throw new Error('Paste the repository\'s GitHub URL');
+  if (!value) throw new Error("Paste the repository's GitHub URL");
 
   let url;
   try {
@@ -24,7 +25,12 @@ export function parseGitHubRepositoryUrl(input) {
   const [owner, repositoryWithSuffix] = pathParts;
   const name = repositoryWithSuffix.replace(/\.git$/i, '');
 
-  if (!OWNER_PATTERN.test(owner) || !REPOSITORY_PATTERN.test(name) || name === '.' || name === '..') {
+  if (
+    !OWNER_PATTERN.test(owner) ||
+    !REPOSITORY_PATTERN.test(name) ||
+    name === '.' ||
+    name === '..'
+  ) {
     throw new Error(INVALID_URL_MESSAGE);
   }
 

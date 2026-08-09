@@ -109,6 +109,14 @@ Do not use the demo password for a real account.
 
 ## Commands
 
+Formatting from the repository root:
+
+```bash
+npm install
+npm run format       # rewrite source files with the shared style
+npm run format:check # verify formatting without changing files
+```
+
 Backend:
 
 ```bash
@@ -170,6 +178,9 @@ This feature adds the `webhook_deliveries` table. Run the explicit, non-destruct
 ## Testing
 
 ```bash
+cd norm
+npm run format:check
+
 cd norm/backend
 npm test
 

@@ -11,4 +11,3 @@ try {
 } finally {
   await sequelize.close();
 }
-

@@ -1,0 +1,11 @@
+{
+  "name": "norm-project",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write package.json .prettierrc.json \"backend/**/*.{js,json}\" \"frontend/**/*.{js,jsx,json,css,html}\"",
+    "format:check": "prettier --check package.json .prettierrc.json \"backend/**/*.{js,json}\" \"frontend/**/*.{js,jsx,json,css,html}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
+  }
+}

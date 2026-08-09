@@ -19,20 +19,32 @@ export function calculateImpact(paths = [], criticalPaths = []) {
   const files = paths.map(normalizePath);
   const configuredCriticalMatch = touchesCriticalPath(files, criticalPaths);
   const highImpact = /(auth(?:entication)?|permissions?|migrations?|payments?|billing)(\/|\.|$)/i;
-  const dataLayer = /(^|\/)(models?|entities|schemas?|database|db|associations?|orm|sequelize|prisma|drizzle)(\/|\.|$)/i;
-  const operational = /(^|\/)(\.github\/workflows|deployment|infrastructure|infra|config\/env)(\/|\.|$)/i;
+  const dataLayer =
+    /(^|\/)(models?|entities|schemas?|database|db|associations?|orm|sequelize|prisma|drizzle)(\/|\.|$)/i;
+  const operational =
+    /(^|\/)(\.github\/workflows|deployment|infrastructure|infra|config\/env)(\/|\.|$)/i;
   const backend = /(^|\/)(backend|server|api|routes?|controllers?|services?)(\/|\.|$)/i;
   const frontend = /(^|\/)(frontend|client|src\/components|src\/pages)(\/|\.|$)/i;
 
   if (configuredCriticalMatch || files.some((file) => highImpact.test(file))) {
-    return { score: 25, reason: 'Touches authentication, permissions, migration, payment, or configured critical files' };
+    return {
+      score: 25,
+      reason:
+        'Touches authentication, permissions, migration, payment, or configured critical files',
+    };
   }
   if (files.some((file) => dataLayer.test(file))) {
     return { score: 20, reason: 'Touches shared data models, schemas, or associations' };
   }
-  if (files.some((file) => operational.test(file))) return { score: 20, reason: 'Touches deployment, infrastructure, workflow, or environment files' };
-  if (files.some((file) => backend.test(file))) return { score: 15, reason: 'Touches backend business logic or API routes' };
-  if (files.some((file) => frontend.test(file))) return { score: 10, reason: 'Touches frontend application code' };
+  if (files.some((file) => operational.test(file)))
+    return {
+      score: 20,
+      reason: 'Touches deployment, infrastructure, workflow, or environment files',
+    };
+  if (files.some((file) => backend.test(file)))
+    return { score: 15, reason: 'Touches backend business logic or API routes' };
+  if (files.some((file) => frontend.test(file)))
+    return { score: 10, reason: 'Touches frontend application code' };
   if (isDocumentationOnly(files)) return { score: 2, reason: 'Documentation-only change' };
   return { score: 0, reason: null };
 }
@@ -68,7 +80,10 @@ export function calculatePriority(pullRequest, repository, now = new Date()) {
     impactScore: impact.score,
     sizeScore: size.score,
     ageScore: age.score,
-    priorityScore: Math.min(100, components.reduce((total, item) => total + item.score, 0)),
+    priorityScore: Math.min(
+      100,
+      components.reduce((total, item) => total + item.score, 0),
+    ),
     priorityReasons: components.map((item) => item.reason).filter(Boolean),
   };
 }

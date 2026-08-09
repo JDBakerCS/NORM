@@ -12,4 +12,3 @@ router.use('/teams/:teamId/repositories', authenticateUser, teamRepositoryRouter
 router.use('/repositories', authenticateUser, repositoryRouter);
 router.use('/pull-requests', authenticateUser, pullRequestRoutes);
 export default router;
-

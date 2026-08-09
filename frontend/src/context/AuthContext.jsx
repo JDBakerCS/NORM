@@ -15,7 +15,8 @@ export function AuthProvider({ children }) {
     window.addEventListener('norm:session-expired', clearSession);
     const token = localStorage.getItem('normToken');
     if (token) {
-      api.get('/auth/me')
+      api
+        .get('/auth/me')
         .then(({ data }) => setUser(data.user))
         .catch(clearSession)
         .finally(() => setLoading(false));
@@ -28,25 +29,27 @@ export function AuthProvider({ children }) {
     setUser(nextUser);
   };
 
-  const value = useMemo(() => ({
-    user,
-    loading,
-    async login(credentials) {
-      const { data } = await api.post('/auth/login', credentials);
-      finishAuthentication(data);
-    },
-    async register(details) {
-      const { data } = await api.post('/auth/register', details);
-      finishAuthentication(data);
-    },
-    logout() {
-      localStorage.removeItem('normToken');
-      setUser(null);
-    },
-  }), [user, loading]);
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      async login(credentials) {
+        const { data } = await api.post('/auth/login', credentials);
+        finishAuthentication(data);
+      },
+      async register(details) {
+        const { data } = await api.post('/auth/register', details);
+        finishAuthentication(data);
+      },
+      logout() {
+        localStorage.removeItem('normToken');
+        setUser(null);
+      },
+    }),
+    [user, loading],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);
-

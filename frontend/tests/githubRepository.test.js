@@ -24,6 +24,12 @@ test('accepts a copied GitHub URL without the protocol', () => {
 });
 
 test('rejects non-GitHub and nested GitHub URLs', () => {
-  assert.throws(() => parseGitHubRepositoryUrl('https://gitlab.com/acme/widgets'), /GitHub repository URL/);
-  assert.throws(() => parseGitHubRepositoryUrl('https://github.com/acme/widgets/tree/main'), /GitHub repository URL/);
+  assert.throws(
+    () => parseGitHubRepositoryUrl('https://gitlab.com/acme/widgets'),
+    /GitHub repository URL/,
+  );
+  assert.throws(
+    () => parseGitHubRepositoryUrl('https://github.com/acme/widgets/tree/main'),
+    /GitHub repository URL/,
+  );
 });

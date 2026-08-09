@@ -7,4 +7,3 @@ export class AppError extends Error {
     this.details = details;
   }
 }
-
