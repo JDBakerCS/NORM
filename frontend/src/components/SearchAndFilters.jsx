@@ -1,10 +1,21 @@
-export default function SearchAndFilters({ search, onSearch, agentFilter, onAgentFilter, ciFilter, onCiFilter }) {
+export default function SearchAndFilters({
+  search,
+  onSearch,
+  agentFilter,
+  onAgentFilter,
+  ciFilter,
+  onCiFilter,
+}) {
   return (
     <div className="filters">
       <label className="search-field">
         <span className="sr-only">Search pull requests</span>
         <span aria-hidden="true">⌕</span>
-        <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search title or author" />
+        <input
+          value={search}
+          onChange={(event) => onSearch(event.target.value)}
+          placeholder="Search title or author"
+        />
       </label>
       <label>
         <span className="sr-only">Filter by author type</span>
@@ -27,4 +38,3 @@ export default function SearchAndFilters({ search, onSearch, agentFilter, onAgen
     </div>
   );
 }
-

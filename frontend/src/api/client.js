@@ -22,5 +22,5 @@ api.interceptors.response.use(
   },
 );
 
-export const errorMessage = (error, fallback = 'Something went wrong') => error.response?.data?.error?.message || error.message || fallback;
-
+export const errorMessage = (error, fallback = 'Something went wrong') =>
+  error.response?.data?.error?.message || error.message || fallback;

@@ -8,4 +8,3 @@ router.get('/:teamId', asyncHandler(getTeam));
 router.get('/:teamId/members', asyncHandler(listMembers));
 router.post('/:teamId/members', asyncHandler(addMember));
 export default router;
-

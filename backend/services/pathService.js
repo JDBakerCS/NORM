@@ -6,7 +6,8 @@ const DOCUMENTATION_PATTERNS = [
   /\.txt$/i,
 ];
 
-export const normalizePath = (value = '') => value.replaceAll('\\', '/').replace(/^\.\//, '').toLowerCase();
+export const normalizePath = (value = '') =>
+  value.replaceAll('\\', '/').replace(/^\.\//, '').toLowerCase();
 
 export function pathMatches(filePath, configuredPath) {
   const file = normalizePath(filePath);
@@ -15,13 +16,15 @@ export function pathMatches(filePath, configuredPath) {
   return file === rule.replace(/\/$/, '') || file.startsWith(rule);
 }
 
-export const isDocumentationPath = (filePath) => DOCUMENTATION_PATTERNS.some((pattern) => pattern.test(normalizePath(filePath)));
+export const isDocumentationPath = (filePath) =>
+  DOCUMENTATION_PATTERNS.some((pattern) => pattern.test(normalizePath(filePath)));
 
 export function isDocumentationOnly(paths = []) {
   return paths.length > 0 && paths.every(isDocumentationPath);
 }
 
 export function touchesCriticalPath(paths = [], criticalPaths = []) {
-  return paths.some((filePath) => criticalPaths.some((criticalPath) => pathMatches(filePath, criticalPath)));
+  return paths.some((filePath) =>
+    criticalPaths.some((criticalPath) => pathMatches(filePath, criticalPath)),
+  );
 }
-

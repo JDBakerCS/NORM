@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getNamedCheckSummary, getReviewRequestSummary, sortNamedChecks } from '../src/utils/reviewCoordination.js';
+import {
+  getNamedCheckSummary,
+  getReviewRequestSummary,
+  sortNamedChecks,
+} from '../src/utils/reviewCoordination.js';
 
 test('review routing names requested users and teams', () => {
   const result = getReviewRequestSummary({
@@ -8,7 +12,10 @@ test('review routing names requested users and teams', () => {
     requestedTeams: ['backend-team'],
     reviewStatus: 'PENDING',
   });
-  assert.deepEqual(result, { label: 'Waiting on @octocat, backend-team team', hasActiveRequest: true });
+  assert.deepEqual(result, {
+    label: 'Waiting on @octocat, backend-team team',
+    hasActiveRequest: true,
+  });
 });
 
 test('review routing distinguishes completed and missing requests', () => {
@@ -23,10 +30,16 @@ test('named check summaries prioritize failures and running work', () => {
     { name: 'Security scan', status: 'FAILED' },
   ];
   assert.equal(getNamedCheckSummary(checks).label, 'Failed: Security scan');
-  assert.deepEqual(sortNamedChecks(checks).map((check) => check.status), ['FAILED', 'RUNNING', 'PASSED']);
+  assert.deepEqual(
+    sortNamedChecks(checks).map((check) => check.status),
+    ['FAILED', 'RUNNING', 'PASSED'],
+  );
 });
 
 test('named check summaries explain all-pass and unavailable states', () => {
-  assert.equal(getNamedCheckSummary([{ name: 'Unit tests', status: 'PASSED' }]).label, '1 named check passed');
+  assert.equal(
+    getNamedCheckSummary([{ name: 'Unit tests', status: 'PASSED' }]).label,
+    '1 named check passed',
+  );
   assert.equal(getNamedCheckSummary([]).label, 'No named checks available');
 });

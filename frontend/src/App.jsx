@@ -14,7 +14,13 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="/" element={<DashboardPage />} />
         <Route path="/pull-requests/:id" element={<PullRequestDetailPage />} />
         <Route path="/repositories/:id/settings" element={<RepositorySettingsPage />} />
@@ -24,4 +30,3 @@ export default function App() {
     </Routes>
   );
 }
-

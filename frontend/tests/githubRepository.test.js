@@ -11,8 +11,8 @@ test('parses a GitHub browser URL', () => {
 
 test('parses a GitHub clone URL and removes the .git suffix', () => {
   assert.deepEqual(
-    parseGitHubRepositoryUrl('https://github.com/Capstone-III-CleanSlate/CleanSlate_backend.git'),
-    { owner: 'Capstone-III-CleanSlate', name: 'CleanSlate_backend' },
+    parseGitHubRepositoryUrl('https://github.com/example-owner/example-repository.git'),
+    { owner: 'example-owner', name: 'example-repository' },
   );
 });
 
@@ -24,6 +24,12 @@ test('accepts a copied GitHub URL without the protocol', () => {
 });
 
 test('rejects non-GitHub and nested GitHub URLs', () => {
-  assert.throws(() => parseGitHubRepositoryUrl('https://gitlab.com/acme/widgets'), /GitHub repository URL/);
-  assert.throws(() => parseGitHubRepositoryUrl('https://github.com/acme/widgets/tree/main'), /GitHub repository URL/);
+  assert.throws(
+    () => parseGitHubRepositoryUrl('https://gitlab.com/acme/widgets'),
+    /GitHub repository URL/,
+  );
+  assert.throws(
+    () => parseGitHubRepositoryUrl('https://github.com/acme/widgets/tree/main'),
+    /GitHub repository URL/,
+  );
 });

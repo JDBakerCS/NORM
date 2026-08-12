@@ -35,10 +35,27 @@ function inMemoryModel() {
   const rows = [];
   return {
     rows,
-    async findAll({ where }) { return rows.filter((row) => row.repositoryId === where.repositoryId && row.state === where.state); },
-    async findOne({ where }) { return rows.find((row) => row.repositoryId === where.repositoryId && String(row.githubPullRequestId) === String(where.githubPullRequestId)) || null; },
+    async findAll({ where }) {
+      return rows.filter(
+        (row) => row.repositoryId === where.repositoryId && row.state === where.state,
+      );
+    },
+    async findOne({ where }) {
+      return (
+        rows.find(
+          (row) =>
+            row.repositoryId === where.repositoryId &&
+            String(row.githubPullRequestId) === String(where.githubPullRequestId),
+        ) || null
+      );
+    },
     async create(values) {
-      const row = { ...values, async update(updates) { Object.assign(this, updates); } };
+      const row = {
+        ...values,
+        async update(updates) {
+          Object.assign(this, updates);
+        },
+      };
       rows.push(row);
       return row;
     },
@@ -54,15 +71,28 @@ function repository() {
     criticalPaths: ['auth/'],
     agentAccounts: [],
     lowRiskMaxLines: 50,
-    async update(values) { Object.assign(this, values); },
+    async update(values) {
+      Object.assign(this, values);
+    },
   };
 }
 
 function provider(current) {
   return {
-    async getRepository() { return { id: 77, full_name: 'acme/widget', html_url: 'https://github.com/acme/widget', default_branch: 'main' }; },
-    async getOpenPullRequests() { return current.value ? [{ number: current.value.number }] : []; },
-    async syncPullRequest() { return current.value; },
+    async getRepository() {
+      return {
+        id: 77,
+        full_name: 'acme/widget',
+        html_url: 'https://github.com/acme/widget',
+        default_branch: 'main',
+      };
+    },
+    async getOpenPullRequests() {
+      return current.value ? [{ number: current.value.number }] : [];
+    },
+    async syncPullRequest() {
+      return current.value;
+    },
   };
 }
 
@@ -77,7 +107,12 @@ test('first sync creates, second sync updates without a duplicate and recalculat
   assert.equal(model.rows[0].urgencyScore, 0);
   assert.equal(model.rows[0].impactScore, 15);
 
-  current.value = normalized({ title: 'Urgent auth update', labels: ['priority:critical'], changedFilePaths: ['auth/session.js'], changedLines: 900 });
+  current.value = normalized({
+    title: 'Urgent auth update',
+    labels: ['priority:critical'],
+    changedFilePaths: ['auth/session.js'],
+    changedLines: 900,
+  });
   await syncRepository(repo, provider(current), model, runTransaction);
   assert.equal(model.rows.length, 1);
   assert.equal(model.rows[0].title, 'Urgent auth update');
@@ -112,9 +147,18 @@ test('targeted sync upserts only the delivered pull request', async () => {
 });
 
 test('GitHub provider failure becomes a useful safe application error', async () => {
-  const failing = { async getRepository() { const error = new Error('secret response'); error.status = 403; throw error; } };
+  const failing = {
+    async getRepository() {
+      const error = new Error('secret response');
+      error.status = 403;
+      throw error;
+    },
+  };
   await assert.rejects(
     syncRepository(repository(), failing, inMemoryModel(), runTransaction),
-    (error) => error.code === 'GITHUB_SYNC_FAILED' && error.message === 'Repository could not be synchronized' && error.details === 'GitHub returned HTTP 403',
+    (error) =>
+      error.code === 'GITHUB_SYNC_FAILED' &&
+      error.message === 'Repository could not be synchronized' &&
+      error.details === 'GitHub returned HTTP 403',
   );
 });

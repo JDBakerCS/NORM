@@ -4,7 +4,13 @@ import { PullRequest, Repository, WebhookDelivery } from '../models/index.js';
 import { syncSinglePullRequest } from './syncService.js';
 import { AppError } from '../utils/AppError.js';
 
-export const WEBHOOK_EVENTS = new Set(['pull_request', 'pull_request_review', 'check_run', 'check_suite', 'status']);
+export const WEBHOOK_EVENTS = new Set([
+  'pull_request',
+  'pull_request_review',
+  'check_run',
+  'check_suite',
+  'status',
+]);
 const activeRepositoryQueues = new Map();
 
 function text(value, maxLength) {
@@ -27,30 +33,36 @@ export function verifyWebhookSignature(rawBody, signature, secret) {
   const expected = `sha256=${crypto.createHmac('sha256', secret).update(rawBody).digest('hex')}`;
   const expectedBuffer = Buffer.from(expected, 'utf8');
   const receivedBuffer = Buffer.from(signature, 'utf8');
-  return expectedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+  return (
+    expectedBuffer.length === receivedBuffer.length &&
+    crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
+  );
 }
 
 export function getWebhookMetadata(event, payload = {}) {
   const repository = payload.repository || {};
-  const repositoryOwner = text(repository.owner?.login || repository.owner?.name, 100)?.toLowerCase() || null;
+  const repositoryOwner =
+    text(repository.owner?.login || repository.owner?.name, 100)?.toLowerCase() || null;
   const repositoryName = text(repository.name, 100)?.toLowerCase() || null;
-  const directPullRequest = event === 'pull_request'
-    ? payload.number
-    : payload.pull_request?.number;
-  const checkPullRequests = event === 'check_run'
-    ? payload.check_run?.pull_requests
-    : event === 'check_suite'
-      ? payload.check_suite?.pull_requests
-      : [];
+  const directPullRequest =
+    event === 'pull_request' ? payload.number : payload.pull_request?.number;
+  const checkPullRequests =
+    event === 'check_run'
+      ? payload.check_run?.pull_requests
+      : event === 'check_suite'
+        ? payload.check_suite?.pull_requests
+        : [];
   const pullRequestNumbers = uniqueNumbers([
     directPullRequest,
-    ...(Array.isArray(checkPullRequests) ? checkPullRequests.map((pullRequest) => pullRequest?.number) : []),
+    ...(Array.isArray(checkPullRequests)
+      ? checkPullRequests.map((pullRequest) => pullRequest?.number)
+      : []),
   ]);
   const headSha = text(
-    payload.pull_request?.head?.sha
-      || payload.check_run?.head_sha
-      || payload.check_suite?.head_sha
-      || payload.sha,
+    payload.pull_request?.head?.sha ||
+      payload.check_run?.head_sha ||
+      payload.check_suite?.head_sha ||
+      payload.sha,
     64,
   );
 
@@ -64,9 +76,11 @@ export function getWebhookMetadata(event, payload = {}) {
 }
 
 function shouldProcessDelivery(event, metadata) {
-  return WEBHOOK_EVENTS.has(event)
-    && Boolean(metadata.repositoryOwner && metadata.repositoryName)
-    && Boolean(metadata.pullRequestNumbers.length || metadata.headSha);
+  return (
+    WEBHOOK_EVENTS.has(event) &&
+    Boolean(metadata.repositoryOwner && metadata.repositoryName) &&
+    Boolean(metadata.pullRequestNumbers.length || metadata.headSha)
+  );
 }
 
 export async function registerWebhookDelivery(
@@ -76,7 +90,11 @@ export async function registerWebhookDelivery(
   const normalizedDeliveryId = text(deliveryId, 120);
   const normalizedEvent = text(event, 80);
   if (!normalizedDeliveryId || !normalizedEvent) {
-    throw new AppError('GitHub webhook delivery headers are required', 400, 'WEBHOOK_HEADERS_MISSING');
+    throw new AppError(
+      'GitHub webhook delivery headers are required',
+      400,
+      'WEBHOOK_HEADERS_MISSING',
+    );
   }
 
   const metadata = getWebhookMetadata(normalizedEvent, payload);
@@ -100,7 +118,8 @@ function enqueueRepositoryWork(repositoryId, work) {
   const queued = previous.catch(() => undefined).then(work);
   activeRepositoryQueues.set(repositoryId, queued);
   return queued.finally(() => {
-    if (activeRepositoryQueues.get(repositoryId) === queued) activeRepositoryQueues.delete(repositoryId);
+    if (activeRepositoryQueues.get(repositoryId) === queued)
+      activeRepositoryQueues.delete(repositoryId);
   });
 }
 
@@ -125,7 +144,8 @@ export async function processWebhookDelivery(
   } = {},
 ) {
   const delivery = await deliveryModel.findByPk(deliveryId);
-  if (!delivery || ['COMPLETED', 'IGNORED'].includes(delivery.status)) return { processed: false, reason: 'already_handled' };
+  if (!delivery || ['COMPLETED', 'IGNORED'].includes(delivery.status))
+    return { processed: false, reason: 'already_handled' };
   if (!delivery.repositoryOwner || !delivery.repositoryName) {
     await delivery.update({ status: 'IGNORED', processedAt: new Date() });
     return { processed: false, reason: 'repository_not_provided' };
@@ -139,7 +159,11 @@ export async function processWebhookDelivery(
     let synchronized = 0;
 
     for (const repository of repositories) {
-      const pullRequestNumbers = await findPullRequestNumbers(delivery, repository, pullRequestModel);
+      const pullRequestNumbers = await findPullRequestNumbers(
+        delivery,
+        repository,
+        pullRequestModel,
+      );
       if (!pullRequestNumbers.length) continue;
       await enqueueRepositoryWork(repository.id, async () => {
         for (const pullRequestNumber of pullRequestNumbers) {

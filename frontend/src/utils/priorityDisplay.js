@@ -3,13 +3,21 @@ export function getAttentionLevel(pullRequest = {}) {
   const impact = Number(pullRequest.impactScore) || 0;
 
   if (urgency >= 40 || impact >= 25) {
-    return { key: 'CRITICAL', label: 'Critical', description: 'Critical urgency or code-area impact' };
+    return {
+      key: 'CRITICAL',
+      label: 'Critical',
+      description: 'Critical urgency or code-area impact',
+    };
   }
   if (urgency + impact >= 30 || impact >= 20) {
     return { key: 'HIGH', label: 'High', description: 'Strong urgency or broad code impact' };
   }
   if (urgency > 0 || impact >= 10) {
-    return { key: 'NORMAL', label: 'Normal', description: 'Routine priority or application-code impact' };
+    return {
+      key: 'NORMAL',
+      label: 'Normal',
+      description: 'Routine priority or application-code impact',
+    };
   }
   return { key: 'LOW', label: 'Low', description: 'No elevated urgency or impact signals' };
 }
@@ -27,9 +35,10 @@ export function getReviewSize(pullRequest = {}) {
 export function getWaitingTime(githubCreatedAt, now = new Date()) {
   const created = new Date(githubCreatedAt);
   const current = new Date(now);
-  const elapsedMinutes = Number.isNaN(created.getTime()) || Number.isNaN(current.getTime())
-    ? 0
-    : Math.max(0, Math.floor((current.getTime() - created.getTime()) / 60_000));
+  const elapsedMinutes =
+    Number.isNaN(created.getTime()) || Number.isNaN(current.getTime())
+      ? 0
+      : Math.max(0, Math.floor((current.getTime() - created.getTime()) / 60_000));
   const days = Math.floor(elapsedMinutes / 1_440);
   const hours = Math.floor((elapsedMinutes % 1_440) / 60);
   const minutes = elapsedMinutes % 60;
