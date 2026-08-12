@@ -13,12 +13,46 @@ export default function PullRequestDetailPage() {
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [commits, setCommits] = useState([]);
+  const [commitsOpen, setCommitsOpen] = useState(false);
+  const [commitsLoading, setCommitsLoading] = useState(false);
+  const [commitsLoaded, setCommitsLoaded] = useState(false);
+  const [commitsError, setCommitsError] = useState('');
+
   useEffect(() => {
+    setData(null);
+    setError('');
+    setCommits([]);
+    setCommitsOpen(false);
+    setCommitsLoading(false);
+    setCommitsLoaded(false);
+    setCommitsError('');
     api
       .get(`/pull-requests/${id}`)
       .then(({ data: result }) => setData(result))
       .catch((requestError) => setError(errorMessage(requestError)));
   }, [id]);
+
+  function loadCommits() {
+    if (commitsLoaded || commitsLoading) return;
+    setCommitsLoading(true);
+    setCommitsError('');
+    api
+      .get(`/pull-requests/${id}/commits`)
+      .then(({ data: result }) => {
+        setCommits(result.commits || []);
+        setCommitsLoaded(true);
+      })
+      .catch((requestError) => setCommitsError(errorMessage(requestError)))
+      .finally(() => setCommitsLoading(false));
+  }
+
+  function toggleCommits() {
+    const nextOpen = !commitsOpen;
+    setCommitsOpen(nextOpen);
+    if (nextOpen) loadCommits();
+  }
+
   if (error)
     return (
       <div className="narrow-page">
@@ -162,6 +196,58 @@ export default function PullRequestDetailPage() {
             </ul>
           ) : (
             <p className="muted-copy">No named checks are available for this pull request.</p>
+          )}
+        </section>
+        <section className="content-card commits-card">
+          <div className="card-heading">
+            <div>
+              <p className="eyebrow">History</p>
+              <h2>Commits{commitsLoaded ? ` (${commits.length})` : ''}</h2>
+            </div>
+            <button
+              className="button button-secondary commits-toggle"
+              type="button"
+              aria-expanded={commitsOpen}
+              onClick={toggleCommits}
+            >
+              {commitsOpen ? 'Hide commits' : 'Show commits'}
+            </button>
+          </div>
+          {commitsOpen && (
+            <>
+              {commitsLoading && <LoadingState label="Loading commits" />}
+              <ErrorMessage message={commitsError} onRetry={loadCommits} />
+              {!commitsLoading && !commitsError && commits.length > 0 && (
+                <ol className="commit-list">
+                  {commits.map((commit) => (
+                    <li key={commit.sha}>
+                      <div className="commit-main">
+                        <strong className="commit-message">
+                          {commit.htmlUrl ? (
+                            <a href={commit.htmlUrl} target="_blank" rel="noreferrer">
+                              {commit.message.split('\n')[0]} ↗
+                            </a>
+                          ) : (
+                            commit.message.split('\n')[0]
+                          )}
+                        </strong>
+                        <span className="commit-meta">
+                          {commit.authorLogin} ·{' '}
+                          {commit.committedAt
+                            ? new Date(commit.committedAt).toLocaleString()
+                            : 'Unknown date'}
+                          {commit.isVerified && ' · Verified'}
+                        </span>
+                      </div>
+                      <code className="commit-sha">{commit.sha.slice(0, 7)}</code>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {!commitsLoading && !commitsError && commitsLoaded && !commits.length && (
+                <p className="muted-copy">No commits are available for this pull request.</p>
+              )}
+            </>
           )}
         </section>
         <section className="content-card file-card">

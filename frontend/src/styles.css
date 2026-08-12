@@ -864,6 +864,12 @@ label span {
 .checks-card {
   grid-column: 1 / -1;
 }
+.commits-card {
+  grid-column: 1 / -1;
+}
+.commits-toggle {
+  flex-shrink: 0;
+}
 .check-list {
   list-style: none;
   padding: 0;
@@ -891,6 +897,37 @@ label span {
 }
 .check-list small {
   color: var(--muted);
+}
+.commit-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+.commit-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.commit-list li:last-child {
+  border-bottom: 0;
+}
+.commit-main {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.commit-message {
+  overflow-wrap: anywhere;
+}
+.commit-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+.commit-sha {
+  flex-shrink: 0;
 }
 .file-card {
   grid-column: 1;

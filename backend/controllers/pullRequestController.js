@@ -2,6 +2,7 @@ import { Op, literal } from 'sequelize';
 import { PullRequest, Repository } from '../models/index.js';
 import { CI_STATUSES, QUEUE_STATUSES } from '../config/constants.js';
 import { requirePullRequestAccess, requireRepositoryAccess } from '../services/accessService.js';
+import { githubService } from '../services/githubService.js';
 import { classifyQueue } from '../services/queueService.js';
 import { AppError } from '../utils/AppError.js';
 
@@ -60,4 +61,16 @@ export async function getPullRequest(request, response) {
     pullRequest.Repository || (await Repository.findByPk(pullRequest.repositoryId));
   const queueDecision = classifyQueue(pullRequest.toJSON(), repository.toJSON());
   response.json({ pullRequest, queueDecision });
+}
+
+export async function getPullRequestCommits(request, response) {
+  const pullRequest = await requirePullRequestAccess(request.user.id, request.params.pullRequestId);
+  const repository =
+    pullRequest.Repository || (await Repository.findByPk(pullRequest.repositoryId));
+  const commits = await githubService.getPullRequestCommits(
+    repository.owner,
+    repository.name,
+    pullRequest.number,
+  );
+  response.json({ commits });
 }

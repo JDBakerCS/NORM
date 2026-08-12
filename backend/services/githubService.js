@@ -54,6 +54,29 @@ async function getReviews(owner, repo, pullNumber) {
   });
 }
 
+function normalizeCommit(commit) {
+  const commitDetails = commit.commit || {};
+  const commitAuthor = commit.author || {};
+  return {
+    sha: commit.sha || '',
+    message: commitDetails.message || 'No commit message',
+    authorLogin: commitAuthor.login || commitDetails.author?.name || 'unknown',
+    committedAt: commitDetails.author?.date || commitDetails.committer?.date || null,
+    htmlUrl: commit.html_url || null,
+    isVerified: Boolean(commitDetails.verification?.verified),
+  };
+}
+
+async function getPullRequestCommits(owner, repo, pullNumber, client = getClient()) {
+  const commits = await client.paginate(client.pulls.listCommits, {
+    owner,
+    repo,
+    pull_number: pullNumber,
+    per_page: 100,
+  });
+  return commits.map(normalizeCommit);
+}
+
 async function getRequestedReviewers(owner, repo, pullNumber, client = getClient()) {
   const { data } = await client.pulls.listRequestedReviewers({
     owner,
@@ -178,6 +201,7 @@ export const githubService = {
   getPullRequestDetails,
   getChangedFiles,
   getReviews,
+  getPullRequestCommits,
   getRequestedReviewers,
   getCheckRuns,
   getCheckRunsWithPermissionFallback,
